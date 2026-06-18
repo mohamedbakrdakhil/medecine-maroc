@@ -38,6 +38,7 @@ export const anatomieS1Chapters: Chapter[] = [
         title: 'Modele 3D interactif - membre superieur V2 premium',
         description: 'Vue eclatee, squelette, muscles, plexus brachial, nerfs, arteres, veines, labels et filtres par couche',
         src: '/models/euromed/s1/anatomie/anatomie_membre_superieur_v2_premium.glb',
+        viewer: 'membre-superieur-v4',
       },
     ],
     sourcePages: membreSuperieurPages,

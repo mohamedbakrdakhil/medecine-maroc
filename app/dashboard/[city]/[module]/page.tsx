@@ -10,6 +10,7 @@ import { curriculum } from '@/lib/curriculum'
 import type { Chapter } from '@/lib/content/euromed-s2-biophysique'
 import Thorax3D from '@/components/Thorax3D'
 import GLBModelViewer from '@/components/GLBModelViewer'
+import MembreSuperieur3DViewerV4 from '@/components/MembreSuperieur3DViewerV4'
 
 function ChapterContent({ chapter, gradient }: { chapter: Chapter; gradient: string }) {
   return (
@@ -92,12 +93,22 @@ function ChapterContent({ chapter, gradient }: { chapter: Chapter; gradient: str
       </div>
 
       {chapter.models3D?.map((model) => (
-        <GLBModelViewer
-          key={model.src}
-          title={model.title}
-          description={model.description}
-          src={model.src}
-        />
+        model.viewer === 'membre-superieur-v4' ? (
+          <section key={model.src} className="mt-10 border-t border-gray-100 pt-8">
+            <div className="mb-5">
+              <h2 className="text-base font-bold text-teal-700 mb-1">{model.title}</h2>
+              {model.description && <p className="text-xs text-gray-400">{model.description}</p>}
+            </div>
+            <MembreSuperieur3DViewerV4 modelUrl={model.src} height={720} />
+          </section>
+        ) : (
+          <GLBModelViewer
+            key={model.src}
+            title={model.title}
+            description={model.description}
+            src={model.src}
+          />
+        )
       ))}
 
       {chapter.model3D === 'thorax' && <Thorax3D/>}

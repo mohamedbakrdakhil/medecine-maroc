@@ -1,7 +1,7 @@
 export interface KeyPoint { text: string }
 export interface ContentSection { heading: string; body: string }
 export interface CoursePage { imageUrl: string; alt: string }
-export interface CourseModel3D { title: string; description?: string; src: string }
+export interface CourseModel3D { title: string; description?: string; src: string; viewer?: 'membre-superieur-v4' }
 export interface Chapter {
   id: string
   title: string
