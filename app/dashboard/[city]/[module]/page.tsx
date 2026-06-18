@@ -27,7 +27,7 @@ const moduleChapters: Record<string, Chapter[]> = {
 
 function ChapterContent({ chapter, gradient }: { chapter: Chapter; gradient: string }) {
   return (
-    <article className="max-w-3xl mx-auto px-6 py-8 select-none">
+    <article className="max-w-3xl mx-auto px-4 sm:px-6 py-8 select-none">
       {/* Header */}
       <div className="mb-8">
         <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">{chapter.professor}</p>
@@ -196,9 +196,9 @@ export default function ModulePage() {
       </nav>
 
       {chapters.length > 0 ? (
-        <div className="flex flex-1 overflow-hidden" style={{ height: 'calc(100vh - 56px)' }}>
+        <div className="flex flex-1 overflow-hidden max-md:flex-col" style={{ height: 'calc(100vh - 56px)' }}>
           {/* Sidebar */}
-          <div className="w-64 flex-shrink-0 bg-gray-50 border-r border-gray-100 flex flex-col overflow-hidden">
+          <div className="w-64 flex-shrink-0 bg-gray-50 border-r border-gray-100 flex flex-col overflow-hidden max-md:w-full max-md:max-h-72 max-md:border-r-0 max-md:border-b">
             {/* Module header */}
             <div className={`bg-gradient-to-br ${city.gradient} p-4 text-white`}>
               <div className="text-2xl mb-1">{moduleData.icon}</div>
