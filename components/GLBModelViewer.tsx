@@ -23,7 +23,7 @@ export default function GLBModelViewer({ title, description, src }: GLBModelView
     scene.background = new THREE.Color('#f8fafc')
 
     const camera = new THREE.PerspectiveCamera(38, 1, 0.01, 200)
-    camera.position.set(2.8, -6.2, 1.5)
+    camera.position.set(2.2, -4.4, 1.2)
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, preserveDrawingBuffer: true })
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
@@ -34,7 +34,7 @@ export default function GLBModelViewer({ title, description, src }: GLBModelView
     controls.enableDamping = true
     controls.dampingFactor = 0.06
     controls.enablePan = false
-    controls.minDistance = 2.6
+    controls.minDistance = 1.7
     controls.maxDistance = 10
 
     scene.add(new THREE.HemisphereLight('#ffffff', '#dbeafe', 2.2))
@@ -70,7 +70,7 @@ export default function GLBModelViewer({ title, description, src }: GLBModelView
 
         model.position.sub(center)
         const maxDimension = Math.max(size.x, size.y, size.z)
-        if (maxDimension > 0) model.scale.setScalar(3.6 / maxDimension)
+        if (maxDimension > 0) model.scale.setScalar(7.2 / maxDimension)
 
         controls.target.set(0, 0, 0)
         controls.update()
