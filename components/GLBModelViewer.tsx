@@ -11,9 +11,72 @@ type GLBModelViewerProps = {
   src: string
 }
 
+const anatomyPrefixes = [
+  'BONE_',
+  'JOINT_',
+  'LIGAMENT_',
+  'MUSCLE_',
+  'TENDON_',
+  'NERVE_',
+  'ARTERY_',
+  'VEIN_',
+  'FLOW_',
+  'SKIN_',
+  'LABEL_',
+]
+
+const courseSteps = [
+  { label: 'Vue eclatee', frame: 1 },
+  { label: 'Squelette', frame: 32 },
+  { label: 'Muscles', frame: 52 },
+  { label: 'Nerfs/Vaisseaux', frame: 70 },
+  { label: 'Noms', frame: 76 },
+  { label: 'Mouvement', frame: 90 },
+]
+
 export default function GLBModelViewer({ title, description, src }: GLBModelViewerProps) {
   const mountRef = useRef<HTMLDivElement | null>(null)
+  const modelRef = useRef<THREE.Object3D | null>(null)
+  const mixerRef = useRef<THREE.AnimationMixer | null>(null)
+  const actionsRef = useRef<THREE.AnimationAction[]>([])
+  const pausedRef = useRef(false)
   const [isLoading, setIsLoading] = useState(true)
+  const [selectedObject, setSelectedObject] = useState('Clique sur une structure anatomique')
+  const [selectedLayer, setSelectedLayer] = useState('Les noms Blender et les couches pedagogiques apparaitront ici.')
+
+  const setVisibleByPrefix = (prefixes: string[], visible: boolean) => {
+    modelRef.current?.traverse((object) => {
+      if (object.name && prefixes.some((prefix) => object.name.startsWith(prefix))) object.visible = visible
+    })
+  }
+
+  const showOnlyPrefixes = (prefixes: string[]) => {
+    modelRef.current?.traverse((object) => {
+      if (!object.name) return
+      const isAnatomical = anatomyPrefixes.some((prefix) => object.name.startsWith(prefix))
+      if (isAnatomical) object.visible = prefixes.some((prefix) => object.name.startsWith(prefix))
+    })
+  }
+
+  const showAllLayers = () => {
+    modelRef.current?.traverse((object) => {
+      if (object.name && anatomyPrefixes.some((prefix) => object.name.startsWith(prefix))) object.visible = true
+    })
+  }
+
+  const setAnimationPaused = (paused: boolean) => {
+    pausedRef.current = paused
+  }
+
+  const restartAnimation = () => {
+    mixerRef.current?.setTime(0)
+    pausedRef.current = false
+  }
+
+  const goToFrame = (frame: number) => {
+    mixerRef.current?.setTime(frame / 24)
+    pausedRef.current = true
+  }
 
   useEffect(() => {
     const mount = mountRef.current
@@ -50,8 +113,9 @@ export default function GLBModelViewer({ title, description, src }: GLBModelView
     const modelRoot = new THREE.Group()
     scene.add(modelRoot)
 
-    let mixer: THREE.AnimationMixer | null = null
     let disposed = false
+    const raycaster = new THREE.Raycaster()
+    const pointer = new THREE.Vector2()
 
     const loader = new GLTFLoader()
     loader.load(
@@ -60,6 +124,7 @@ export default function GLBModelViewer({ title, description, src }: GLBModelView
         if (disposed) return
 
         const model = gltf.scene
+        modelRef.current = model
         modelRoot.add(model)
 
         const box = new THREE.Box3().setFromObject(model)
@@ -76,11 +141,10 @@ export default function GLBModelViewer({ title, description, src }: GLBModelView
         controls.update()
 
         if (gltf.animations.length > 0) {
-          mixer = new THREE.AnimationMixer(model)
-          gltf.animations.forEach((clip) => {
-            const action = mixer?.clipAction(clip)
-            action?.play()
-          })
+          const mixer = new THREE.AnimationMixer(model)
+          mixerRef.current = mixer
+          actionsRef.current = gltf.animations.map((clip) => mixer.clipAction(clip))
+          actionsRef.current.forEach((action) => action.play())
         }
 
         setIsLoading(false)
@@ -101,13 +165,33 @@ export default function GLBModelViewer({ title, description, src }: GLBModelView
     const observer = new ResizeObserver(resize)
     observer.observe(mount)
 
+    const onPointerDown = (event: PointerEvent) => {
+      if (!modelRef.current) return
+      const rect = renderer.domElement.getBoundingClientRect()
+      pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1
+      pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1
+      raycaster.setFromCamera(pointer, camera)
+      const meshes: THREE.Object3D[] = []
+      modelRef.current.traverse((object) => {
+        if (object instanceof THREE.Mesh && object.visible) meshes.push(object)
+      })
+      const hits = raycaster.intersectObjects(meshes, true)
+      if (hits.length === 0) return
+      const object = hits[0].object
+      const displayName = typeof object.userData?.display_name === 'string' ? object.userData.display_name : object.name
+      const layer = typeof object.userData?.medical_layer === 'string' ? object.userData.medical_layer : 'non classe'
+      setSelectedObject(displayName || 'Structure anatomique')
+      setSelectedLayer(`${object.name || 'Objet 3D'} - couche : ${layer}`)
+    }
+
+    renderer.domElement.addEventListener('pointerdown', onPointerDown)
+
     const clock = new THREE.Clock()
     let animationFrame = 0
     const animate = () => {
       animationFrame = requestAnimationFrame(animate)
       const delta = clock.getDelta()
-      mixer?.update(delta)
-      if (!controls.enabled) modelRoot.rotation.z += 0
+      if (!pausedRef.current) mixerRef.current?.update(delta)
       controls.update()
       renderer.render(scene, camera)
     }
@@ -118,6 +202,7 @@ export default function GLBModelViewer({ title, description, src }: GLBModelView
       cancelAnimationFrame(animationFrame)
       observer.disconnect()
       controls.dispose()
+      renderer.domElement.removeEventListener('pointerdown', onPointerDown)
       renderer.dispose()
       if (renderer.domElement.parentNode === mount) mount.removeChild(renderer.domElement)
       scene.traverse((object) => {
@@ -127,6 +212,9 @@ export default function GLBModelViewer({ title, description, src }: GLBModelView
           materials.forEach((material) => material.dispose())
         }
       })
+      modelRef.current = null
+      mixerRef.current = null
+      actionsRef.current = []
     }
   }, [src])
 
@@ -143,6 +231,59 @@ export default function GLBModelViewer({ title, description, src }: GLBModelView
           </div>
         )}
         <div ref={mountRef} className="w-full" />
+      </div>
+      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+        <button className="rounded-md bg-teal-600 px-3 py-2 text-xs font-bold text-white" onClick={() => setAnimationPaused(false)}>
+          Lire
+        </button>
+        <button className="rounded-md bg-gray-100 px-3 py-2 text-xs font-bold text-gray-700" onClick={() => setAnimationPaused(true)}>
+          Pause
+        </button>
+        <button className="rounded-md bg-gray-100 px-3 py-2 text-xs font-bold text-gray-700" onClick={restartAnimation}>
+          Recommencer
+        </button>
+        <button className="rounded-md bg-gray-100 px-3 py-2 text-xs font-bold text-gray-700" onClick={() => {
+          showAllLayers()
+          setVisibleByPrefix(['LABEL_', 'FLOW_'], false)
+          setAnimationPaused(true)
+        }}>
+          Modele seul
+        </button>
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {courseSteps.map((step) => (
+          <button
+            key={step.label}
+            className="rounded-md bg-teal-50 px-3 py-2 text-xs font-bold text-teal-700"
+            onClick={() => goToFrame(step.frame)}
+          >
+            {step.label}
+          </button>
+        ))}
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button className="rounded-md bg-gray-100 px-3 py-2 text-xs font-bold text-gray-700" onClick={showAllLayers}>
+          Tout
+        </button>
+        <button className="rounded-md bg-gray-100 px-3 py-2 text-xs font-bold text-gray-700" onClick={() => setVisibleByPrefix(['LABEL_'], false)}>
+          Masquer noms
+        </button>
+        <button className="rounded-md bg-gray-100 px-3 py-2 text-xs font-bold text-gray-700" onClick={() => showOnlyPrefixes(['BONE_', 'JOINT_', 'LIGAMENT_', 'LABEL_'])}>
+          Squelette
+        </button>
+        <button className="rounded-md bg-gray-100 px-3 py-2 text-xs font-bold text-gray-700" onClick={() => showOnlyPrefixes(['MUSCLE_', 'TENDON_', 'LABEL_'])}>
+          Muscles
+        </button>
+        <button className="rounded-md bg-gray-100 px-3 py-2 text-xs font-bold text-gray-700" onClick={() => showOnlyPrefixes(['NERVE_', 'FLOW_', 'LABEL_'])}>
+          Nerfs
+        </button>
+        <button className="rounded-md bg-gray-100 px-3 py-2 text-xs font-bold text-gray-700" onClick={() => showOnlyPrefixes(['ARTERY_', 'VEIN_', 'FLOW_', 'LABEL_'])}>
+          Vaisseaux
+        </button>
+      </div>
+      <div className="mt-3 rounded-lg border border-gray-100 bg-white px-3 py-2 text-xs text-gray-500">
+        <p className="font-bold text-gray-800">{selectedObject}</p>
+        <p className="mt-1">{selectedLayer}</p>
       </div>
     </section>
   )

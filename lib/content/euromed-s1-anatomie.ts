@@ -35,9 +35,9 @@ export const anatomieS1Chapters: Chapter[] = [
     professor: 'Pr Chakour',
     models3D: [
       {
-        title: 'Modele 3D interactif - membre superieur',
-        description: 'Squelette, articulations, muscles, vascularisation, plexus brachial, nerfs et mouvements',
-        src: '/models/euromed/s1/anatomie/anatomie_membre_superieur_v1.glb',
+        title: 'Modele 3D interactif - membre superieur V2 premium',
+        description: 'Vue eclatee, squelette, muscles, plexus brachial, nerfs, arteres, veines, labels et filtres par couche',
+        src: '/models/euromed/s1/anatomie/anatomie_membre_superieur_v2_premium.glb',
       },
     ],
     sourcePages: membreSuperieurPages,
