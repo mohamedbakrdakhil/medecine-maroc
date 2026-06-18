@@ -20,7 +20,19 @@ function ChapterContent({ chapter, gradient }: { chapter: Chapter; gradient: str
       {/* Header */}
       <div className="mb-8">
         <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">{chapter.professor}</p>
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">{chapter.title}</h1>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-6">
+          <h1 className="text-2xl font-bold text-gray-900">{chapter.title}</h1>
+          {chapter.sourceUrl && (
+            <a
+              href={chapter.sourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center rounded-lg border border-teal-100 bg-teal-50 px-3 py-2 text-xs font-semibold text-teal-700 hover:bg-teal-100 transition-colors"
+            >
+              {chapter.sourceLabel ?? 'Document original'}
+            </a>
+          )}
+        </div>
 
         {/* Key points — like bibmath's résumé bullets */}
         <div className={`bg-gradient-to-br ${gradient} bg-opacity-5 rounded-2xl p-5 mb-8`}>

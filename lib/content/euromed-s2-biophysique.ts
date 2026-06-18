@@ -4,6 +4,8 @@ export interface Chapter {
   id: string
   title: string
   professor: string
+  sourceUrl?: string
+  sourceLabel?: string
   keyPoints: KeyPoint[]
   sections: ContentSection[]
 }

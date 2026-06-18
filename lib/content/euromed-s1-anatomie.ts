@@ -5,6 +5,8 @@ export const anatomieS1Chapters: Chapter[] = [
     id: 'membre-superieur-introduction',
     title: 'Anatomie du membre supérieur',
     professor: 'Pr Chakour',
+    sourceUrl: '/courses/euromed/s1/anatomie-1-s1/chakour/anatomie-du-membre-superieur.pdf',
+    sourceLabel: 'Document original',
     keyPoints: [
       { text: 'Cours d\'Anatomie I, Semestre 1, consacré au membre supérieur' },
       { text: 'Organisation générale : anatomie de surface, squelette, innervation, topographie et vascularisation' },
