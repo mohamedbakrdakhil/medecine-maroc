@@ -1,11 +1,13 @@
 export interface KeyPoint { text: string }
 export interface ContentSection { heading: string; body: string }
+export interface CoursePage { imageUrl: string; alt: string }
 export interface Chapter {
   id: string
   title: string
   professor: string
   sourceUrl?: string
   sourceLabel?: string
+  sourcePages?: CoursePage[]
   keyPoints: KeyPoint[]
   sections: ContentSection[]
 }

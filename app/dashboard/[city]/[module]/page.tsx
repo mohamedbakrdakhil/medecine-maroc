@@ -2,6 +2,7 @@
 
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useState } from 'react'
 import { getCityById } from '@/lib/cities'
 import { euromedCurriculum } from '@/lib/curriculum-euromed'
@@ -105,6 +106,33 @@ function ChapterContent({ chapter, gradient }: { chapter: Chapter; gradient: str
           </section>
         ))}
       </div>
+
+      {chapter.sourcePages && chapter.sourcePages.length > 0 && (
+        <section className="mt-10">
+          <div className="border-t border-gray-100 pt-8 mb-5">
+            <h2 className="text-base font-bold text-teal-700 mb-1">Cours complet</h2>
+            <p className="text-xs text-gray-400">{chapter.sourcePages.length} pages du support original</p>
+          </div>
+          <div className="space-y-5">
+            {chapter.sourcePages.map((page, index) => (
+              <figure key={page.imageUrl} className="overflow-hidden rounded-lg border border-gray-100 bg-white shadow-sm">
+                <Image
+                  src={page.imageUrl}
+                  alt={page.alt}
+                  width={1440}
+                  height={810}
+                  sizes="(max-width: 768px) 100vw, 768px"
+                  className="w-full h-auto"
+                  priority={index === 0}
+                />
+                <figcaption className="border-t border-gray-50 px-3 py-2 text-[11px] font-medium text-gray-400">
+                  Page {index + 1}
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+        </section>
+      )}
     </article>
   )
 }

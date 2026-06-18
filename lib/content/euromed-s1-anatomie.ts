@@ -1,5 +1,13 @@
 import type { Chapter } from './euromed-s2-biophysique'
 
+const membreSuperieurPages = Array.from({ length: 43 }, (_, index) => {
+  const pageNumber = index + 1
+  return {
+    imageUrl: `/courses/euromed/s1/anatomie-1-s1/chakour/pages/page-${String(pageNumber).padStart(2, '0')}.jpg`,
+    alt: `Anatomie du membre supérieur - page ${pageNumber}`,
+  }
+})
+
 export const anatomieS1Chapters: Chapter[] = [
   {
     id: 'membre-superieur-introduction',
@@ -7,6 +15,7 @@ export const anatomieS1Chapters: Chapter[] = [
     professor: 'Pr Chakour',
     sourceUrl: '/courses/euromed/s1/anatomie-1-s1/chakour/anatomie-du-membre-superieur.pdf',
     sourceLabel: 'Document original',
+    sourcePages: membreSuperieurPages,
     keyPoints: [
       { text: 'Cours d\'Anatomie I, Semestre 1, consacré au membre supérieur' },
       { text: 'Organisation générale : anatomie de surface, squelette, innervation, topographie et vascularisation' },
