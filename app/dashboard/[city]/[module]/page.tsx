@@ -7,8 +7,10 @@ import { getCityById } from '@/lib/cities'
 import { euromedCurriculum } from '@/lib/curriculum-euromed'
 import { curriculum } from '@/lib/curriculum'
 import { biophysiqueChapters, type Chapter } from '@/lib/content/euromed-s2-biophysique'
+import { anatomieS1Chapters } from '@/lib/content/euromed-s1-anatomie'
 
 const moduleChapters: Record<string, Chapter[]> = {
+  'anatomie-1-s1': anatomieS1Chapters,
   'biophysique-s2': biophysiqueChapters,
 }
 
@@ -168,7 +170,7 @@ export default function ModulePage() {
               {Array.from(new Set(chapters.map(c => c.professor))).map(prof => (
                 <div key={prof} className="mb-4">
                   <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 mb-1">{prof}</p>
-                  {chapters.filter(c => c.professor === prof).map((ch, globalIdx) => {
+                  {chapters.filter(c => c.professor === prof).map((ch) => {
                     const idx = chapters.indexOf(ch)
                     return (
                       <button

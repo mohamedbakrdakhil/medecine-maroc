@@ -106,7 +106,7 @@ export default function LoginPage() {
           {/* Bottom quote */}
           <div className="border-l-2 border-red-500 pl-4">
             <p className="text-white/50 text-sm italic">
-              "La santé est un état de complet bien-être physique, mental et social."
+              &quot;La santé est un état de complet bien-être physique, mental et social.&quot;
             </p>
             <p className="text-white/30 text-xs mt-1">— OMS</p>
           </div>
