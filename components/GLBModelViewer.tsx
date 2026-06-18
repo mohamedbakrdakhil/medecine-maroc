@@ -23,7 +23,7 @@ export default function GLBModelViewer({ title, description, src }: GLBModelView
     scene.background = new THREE.Color('#f8fafc')
 
     const camera = new THREE.PerspectiveCamera(38, 1, 0.01, 200)
-    camera.position.set(2.2, -4.4, 1.2)
+    camera.position.set(2.5, -5.2, 1.35)
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, preserveDrawingBuffer: true })
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
@@ -70,7 +70,7 @@ export default function GLBModelViewer({ title, description, src }: GLBModelView
 
         model.position.sub(center)
         const maxDimension = Math.max(size.x, size.y, size.z)
-        if (maxDimension > 0) model.scale.setScalar(7.2 / maxDimension)
+        if (maxDimension > 0) model.scale.setScalar(5.4 / maxDimension)
 
         controls.target.set(0, 0, 0)
         controls.update()
