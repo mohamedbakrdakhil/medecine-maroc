@@ -9,13 +9,24 @@ import { euromedCurriculum } from '@/lib/curriculum-euromed'
 import { curriculum } from '@/lib/curriculum'
 import { biophysiqueChapters, type Chapter } from '@/lib/content/euromed-s2-biophysique'
 import { anatomieS1Chapters } from '@/lib/content/euromed-s1-anatomie'
+import { anatomieS1ExtraChapters } from '@/lib/content/euromed-s1-anatomie-extra'
+import { biologieS1Chapters } from '@/lib/content/euromed-s1-biologie'
+import { chimieBiochimieS1Chapters } from '@/lib/content/euromed-s1-chimie-biochimie'
+import { methodologieS1Chapters } from '@/lib/content/euromed-s1-methodologie'
+import { santePubliqueS1Chapters } from '@/lib/content/euromed-s1-sante-publique'
 
 const moduleChapters: Record<string, Chapter[]> = {
-  'anatomie-1-s1': anatomieS1Chapters,
+  'anatomie-1-s1': [...anatomieS1Chapters, ...anatomieS1ExtraChapters],
+  'biologie-1-s1': biologieS1Chapters,
+  'chimie-biochimie-1-s1': chimieBiochimieS1Chapters,
+  'methodologie-1-s1': methodologieS1Chapters,
+  'sante-publique-1-s1': santePubliqueS1Chapters,
   'biophysique-s2': biophysiqueChapters,
 }
 
 function ChapterContent({ chapter, gradient }: { chapter: Chapter; gradient: string }) {
+  const sourceIsPdf = chapter.sourceUrl?.toLowerCase().endsWith('.pdf') ?? false
+
   return (
     <article className="max-w-3xl mx-auto px-6 py-8 select-none">
       {/* Header */}
@@ -106,6 +117,22 @@ function ChapterContent({ chapter, gradient }: { chapter: Chapter; gradient: str
           </section>
         ))}
       </div>
+
+      {chapter.sourceUrl && sourceIsPdf && !chapter.sourcePages && (
+        <section className="mt-10">
+          <div className="border-t border-gray-100 pt-8 mb-5">
+            <h2 className="text-base font-bold text-teal-700 mb-1">Document complet</h2>
+            <p className="text-xs text-gray-400">Support original intégré au site</p>
+          </div>
+          <div className="overflow-hidden rounded-lg border border-gray-100 bg-white shadow-sm">
+            <iframe
+              src={chapter.sourceUrl}
+              title={chapter.title}
+              className="h-[72vh] w-full"
+            />
+          </div>
+        </section>
+      )}
 
       {chapter.sourcePages && chapter.sourcePages.length > 0 && (
         <section className="mt-10">
