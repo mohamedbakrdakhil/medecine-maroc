@@ -14,6 +14,7 @@ import { biologieS1Chapters } from '@/lib/content/euromed-s1-biologie'
 import { chimieBiochimieS1Chapters } from '@/lib/content/euromed-s1-chimie-biochimie'
 import { methodologieS1Chapters } from '@/lib/content/euromed-s1-methodologie'
 import { santePubliqueS1Chapters } from '@/lib/content/euromed-s1-sante-publique'
+import Thorax3D from '@/components/Thorax3D'
 
 const moduleChapters: Record<string, Chapter[]> = {
   'anatomie-1-s1': [...anatomieS1Chapters, ...anatomieS1ExtraChapters],
@@ -103,6 +104,8 @@ function ChapterContent({ chapter, gradient }: { chapter: Chapter; gradient: str
           </section>
         ))}
       </div>
+
+      {chapter.model3D === 'thorax' && <Thorax3D/>}
 
       {chapter.sourcePages && chapter.sourcePages.length > 0 && (
         <section className="mt-10">

@@ -10,6 +10,7 @@ export interface Chapter {
   sourcePages?: CoursePage[]
   sourcePagesTitle?: string
   sourcePagesSubtitle?: string
+  model3D?: 'thorax'
   keyPoints: KeyPoint[]
   sections: ContentSection[]
 }

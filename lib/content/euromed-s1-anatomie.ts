@@ -206,6 +206,7 @@ export const anatomieS1Chapters: Chapter[] = [
     id: 'anatomie-thorax',
     title: 'Anatomie du thorax',
     professor: 'Pr Elkouache',
+    model3D: 'thorax',
     sourcePages: thoraxPages,
     sourcePagesSubtitle: '37 pages du support original',
     keyPoints: [
