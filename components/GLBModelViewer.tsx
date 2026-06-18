@@ -39,10 +39,14 @@ export default function GLBModelViewer({ title, description, src }: GLBModelView
   const modelRef = useRef<THREE.Object3D | null>(null)
   const mixerRef = useRef<THREE.AnimationMixer | null>(null)
   const actionsRef = useRef<THREE.AnimationAction[]>([])
+  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null)
+  const controlsRef = useRef<OrbitControls | null>(null)
+  const lastPickedPointRef = useRef<THREE.Vector3 | null>(null)
   const pausedRef = useRef(false)
   const [isLoading, setIsLoading] = useState(true)
   const [selectedObject, setSelectedObject] = useState('Clique sur une structure anatomique')
   const [selectedLayer, setSelectedLayer] = useState('Les noms Blender et les couches pedagogiques apparaitront ici.')
+  const [focusState, setFocusState] = useState('Molette: zoom vers le curseur. Shift+clic ou double-clic: centrer une structure.')
 
   const setVisibleByPrefix = (prefixes: string[], visible: boolean) => {
     modelRef.current?.traverse((object) => {
@@ -78,6 +82,56 @@ export default function GLBModelViewer({ title, description, src }: GLBModelView
     pausedRef.current = true
   }
 
+  const centerCameraOnPoint = (point: THREE.Vector3) => {
+    const camera = cameraRef.current
+    const controls = controlsRef.current
+    if (!camera || !controls) return
+
+    const offset = camera.position.clone().sub(controls.target)
+    controls.target.copy(point)
+    camera.position.copy(point).add(offset)
+    controls.update()
+    setFocusState(`Point centre: x=${point.x.toFixed(2)}, y=${point.y.toFixed(2)}, z=${point.z.toFixed(2)}`)
+  }
+
+  const centerOnSelection = () => {
+    if (!lastPickedPointRef.current) {
+      setFocusState('Clique d’abord sur une structure a centrer.')
+      return
+    }
+    centerCameraOnPoint(lastPickedPointRef.current)
+  }
+
+  const resetCamera = () => {
+    const camera = cameraRef.current
+    const controls = controlsRef.current
+    if (!camera || !controls) return
+
+    camera.position.set(2.5, -5.2, 1.35)
+    controls.target.set(0, 0, 0)
+    controls.update()
+    setFocusState('Vue reinitialisee. Molette: zoom vers le curseur.')
+  }
+
+  const cameraPreset = (name: 'global' | 'axilla' | 'hand' | 'forearm') => {
+    const camera = cameraRef.current
+    const controls = controlsRef.current
+    if (!camera || !controls) return
+
+    const presets: Record<typeof name, { position: [number, number, number]; target: [number, number, number] }> = {
+      global: { position: [2.5, -5.2, 1.35], target: [0, 0, 0] },
+      axilla: { position: [2.1, -3.6, 1.7], target: [0.15, -0.05, 0.95] },
+      hand: { position: [1.2, -3.4, -2.4], target: [0.25, -0.05, -2.7] },
+      forearm: { position: [1.8, -4.2, -1.35], target: [0.25, -0.05, -1.35] },
+    } as const
+
+    const preset = presets[name]
+    camera.position.set(...preset.position)
+    controls.target.set(...preset.target)
+    controls.update()
+    setFocusState(`Vue rapide activee: ${name}.`)
+  }
+
   useEffect(() => {
     const mount = mountRef.current
     if (!mount) return
@@ -87,6 +141,7 @@ export default function GLBModelViewer({ title, description, src }: GLBModelView
 
     const camera = new THREE.PerspectiveCamera(38, 1, 0.01, 200)
     camera.position.set(2.5, -5.2, 1.35)
+    cameraRef.current = camera
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, preserveDrawingBuffer: true })
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
@@ -99,6 +154,10 @@ export default function GLBModelViewer({ title, description, src }: GLBModelView
     controls.enablePan = false
     controls.minDistance = 1.7
     controls.maxDistance = 10
+    controlsRef.current = controls
+    if ('zoomToCursor' in controls) {
+      ;(controls as OrbitControls & { zoomToCursor: boolean }).zoomToCursor = true
+    }
 
     scene.add(new THREE.HemisphereLight('#ffffff', '#dbeafe', 2.2))
 
@@ -180,13 +239,20 @@ export default function GLBModelViewer({ title, description, src }: GLBModelView
       const hits = raycaster.intersectObjects(meshes, true)
       if (hits.length === 0) return
       const object = hits[0].object
+      lastPickedPointRef.current = hits[0].point.clone()
       const displayName = typeof object.userData?.display_name === 'string' ? object.userData.display_name : object.name
       const layer = typeof object.userData?.medical_layer === 'string' ? object.userData.medical_layer : 'non classe'
       setSelectedObject(displayName || 'Structure anatomique')
       setSelectedLayer(`${object.name || 'Objet 3D'} - couche : ${layer}`)
+      if (event.shiftKey) centerCameraOnPoint(hits[0].point)
     }
 
     renderer.domElement.addEventListener('pointerdown', onPointerDown)
+    const onDoubleClick = (event: MouseEvent) => {
+      onPointerDown(event as unknown as PointerEvent)
+      if (lastPickedPointRef.current) centerCameraOnPoint(lastPickedPointRef.current)
+    }
+    renderer.domElement.addEventListener('dblclick', onDoubleClick)
 
     const clock = new THREE.Clock()
     let animationFrame = 0
@@ -205,6 +271,7 @@ export default function GLBModelViewer({ title, description, src }: GLBModelView
       observer.disconnect()
       controls.dispose()
       renderer.domElement.removeEventListener('pointerdown', onPointerDown)
+      renderer.domElement.removeEventListener('dblclick', onDoubleClick)
       renderer.dispose()
       if (renderer.domElement.parentNode === mount) mount.removeChild(renderer.domElement)
       scene.traverse((object) => {
@@ -217,6 +284,9 @@ export default function GLBModelViewer({ title, description, src }: GLBModelView
       modelRef.current = null
       mixerRef.current = null
       actionsRef.current = []
+      cameraRef.current = null
+      controlsRef.current = null
+      lastPickedPointRef.current = null
     }
   }, [src])
 
@@ -235,6 +305,12 @@ export default function GLBModelViewer({ title, description, src }: GLBModelView
         <div ref={mountRef} className="w-full" />
       </div>
       <div className="mt-3 grid gap-2 sm:grid-cols-2">
+        <button className="rounded-md bg-amber-50 px-3 py-2 text-xs font-bold text-amber-700" onClick={centerOnSelection}>
+          Centrer selection
+        </button>
+        <button className="rounded-md bg-amber-50 px-3 py-2 text-xs font-bold text-amber-700" onClick={resetCamera}>
+          Reset vue
+        </button>
         <button className="rounded-md bg-teal-600 px-3 py-2 text-xs font-bold text-white" onClick={() => setAnimationPaused(false)}>
           Lire
         </button>
@@ -250,6 +326,20 @@ export default function GLBModelViewer({ title, description, src }: GLBModelView
           setAnimationPaused(true)
         }}>
           Modele seul
+        </button>
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button className="rounded-md bg-sky-50 px-3 py-2 text-xs font-bold text-sky-700" onClick={() => cameraPreset('global')}>
+          Vue globale
+        </button>
+        <button className="rounded-md bg-sky-50 px-3 py-2 text-xs font-bold text-sky-700" onClick={() => cameraPreset('axilla')}>
+          Axillaire
+        </button>
+        <button className="rounded-md bg-sky-50 px-3 py-2 text-xs font-bold text-sky-700" onClick={() => cameraPreset('forearm')}>
+          Avant-bras
+        </button>
+        <button className="rounded-md bg-sky-50 px-3 py-2 text-xs font-bold text-sky-700" onClick={() => cameraPreset('hand')}>
+          Main
         </button>
       </div>
       <div className="mt-3 flex flex-wrap gap-2">
@@ -286,6 +376,7 @@ export default function GLBModelViewer({ title, description, src }: GLBModelView
       <div className="mt-3 rounded-lg border border-gray-100 bg-white px-3 py-2 text-xs text-gray-500">
         <p className="font-bold text-gray-800">{selectedObject}</p>
         <p className="mt-1">{selectedLayer}</p>
+        <p className="mt-2 text-amber-700">{focusState}</p>
       </div>
     </section>
   )
