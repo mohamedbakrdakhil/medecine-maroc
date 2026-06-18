@@ -15,6 +15,7 @@ import { chimieBiochimieS1Chapters } from '@/lib/content/euromed-s1-chimie-bioch
 import { methodologieS1Chapters } from '@/lib/content/euromed-s1-methodologie'
 import { santePubliqueS1Chapters } from '@/lib/content/euromed-s1-sante-publique'
 import Thorax3D from '@/components/Thorax3D'
+import GLBModelViewer from '@/components/GLBModelViewer'
 
 const moduleChapters: Record<string, Chapter[]> = {
   'anatomie-1-s1': [...anatomieS1Chapters, ...anatomieS1ExtraChapters],
@@ -104,6 +105,15 @@ function ChapterContent({ chapter, gradient }: { chapter: Chapter; gradient: str
           </section>
         ))}
       </div>
+
+      {chapter.models3D?.map((model) => (
+        <GLBModelViewer
+          key={model.src}
+          title={model.title}
+          description={model.description}
+          src={model.src}
+        />
+      ))}
 
       {chapter.model3D === 'thorax' && <Thorax3D/>}
 

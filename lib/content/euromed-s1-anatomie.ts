@@ -33,6 +33,13 @@ export const anatomieS1Chapters: Chapter[] = [
     id: 'membre-superieur-introduction',
     title: 'Anatomie du membre supérieur',
     professor: 'Pr Chakour',
+    models3D: [
+      {
+        title: 'Modele 3D interactif - membre superieur',
+        description: 'Squelette, articulations, muscles, vascularisation, plexus brachial, nerfs et mouvements',
+        src: '/models/euromed/s1/anatomie/anatomie_membre_superieur_v1.glb',
+      },
+    ],
     sourcePages: membreSuperieurPages,
     keyPoints: [
       { text: 'Cours d\'Anatomie I, Semestre 1, consacré au membre supérieur' },
