@@ -3,28 +3,13 @@
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { getCityById } from '@/lib/cities'
 import { euromedCurriculum } from '@/lib/curriculum-euromed'
 import { curriculum } from '@/lib/curriculum'
-import { biophysiqueChapters, type Chapter } from '@/lib/content/euromed-s2-biophysique'
-import { anatomieS1Chapters } from '@/lib/content/euromed-s1-anatomie'
-import { anatomieS1ExtraChapters } from '@/lib/content/euromed-s1-anatomie-extra'
-import { biologieS1Chapters } from '@/lib/content/euromed-s1-biologie'
-import { chimieBiochimieS1Chapters } from '@/lib/content/euromed-s1-chimie-biochimie'
-import { methodologieS1Chapters } from '@/lib/content/euromed-s1-methodologie'
-import { santePubliqueS1Chapters } from '@/lib/content/euromed-s1-sante-publique'
+import type { Chapter } from '@/lib/content/euromed-s2-biophysique'
 import Thorax3D from '@/components/Thorax3D'
 import GLBModelViewer from '@/components/GLBModelViewer'
-
-const moduleChapters: Record<string, Chapter[]> = {
-  'anatomie-1-s1': [...anatomieS1Chapters, ...anatomieS1ExtraChapters],
-  'biologie-1-s1': biologieS1Chapters,
-  'chimie-biochimie-1-s1': chimieBiochimieS1Chapters,
-  'methodologie-1-s1': methodologieS1Chapters,
-  'sante-publique-1-s1': santePubliqueS1Chapters,
-  'biophysique-s2': biophysiqueChapters,
-}
 
 function ChapterContent({ chapter, gradient }: { chapter: Chapter; gradient: string }) {
   return (
@@ -155,6 +140,31 @@ export default function ModulePage() {
   const moduleId = params.module as string
   const city = getCityById(cityId)
   const [activeChapterIdx, setActiveChapterIdx] = useState(0)
+  const [chapterLoad, setChapterLoad] = useState<{
+    moduleId: string
+    chapters: Chapter[]
+    error: boolean
+  } | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+
+    fetch(`/api/module-chapters/${moduleId}`, { cache: 'no-store' })
+      .then((response) => {
+        if (!response.ok) throw new Error('Impossible de charger les chapitres')
+        return response.json() as Promise<{ chapters: Chapter[] }>
+      })
+      .then((data) => {
+        if (!cancelled) setChapterLoad({ moduleId, chapters: data.chapters, error: false })
+      })
+      .catch(() => {
+        if (!cancelled) setChapterLoad({ moduleId, chapters: [], error: true })
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [moduleId])
 
   if (!city) return null
 
@@ -178,8 +188,10 @@ export default function ModulePage() {
 
   if (!moduleData) return null
 
-  const chapters = moduleChapters[moduleId] || []
-  const activeChapter = chapters[activeChapterIdx] ?? null
+  const loadedModule = chapterLoad?.moduleId === moduleId ? chapterLoad : null
+  const chapters = loadedModule?.chapters ?? null
+  const loadError = loadedModule?.error ?? false
+  const activeChapter = chapters?.[activeChapterIdx] ?? null
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
@@ -205,7 +217,15 @@ export default function ModulePage() {
         </div>
       </nav>
 
-      {chapters.length > 0 ? (
+      {chapters === null ? (
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center p-12">
+            <div className="text-5xl mb-4">📝</div>
+            <h3 className="text-base font-bold text-gray-900 mb-2">Chargement des cours</h3>
+            <p className="text-gray-500 text-sm">Les chapitres du module arrivent.</p>
+          </div>
+        </div>
+      ) : chapters.length > 0 ? (
         <div className="flex flex-1 overflow-hidden max-md:flex-col" style={{ height: 'calc(100vh - 56px)' }}>
           {/* Sidebar */}
           <div className="w-64 flex-shrink-0 bg-gray-50 border-r border-gray-100 flex flex-col overflow-hidden max-md:w-full max-md:max-h-72 max-md:border-r-0 max-md:border-b">
@@ -275,10 +295,14 @@ export default function ModulePage() {
         </div>
       ) : (
         <div className="flex-1 flex items-center justify-center">
-          <div className="text-center p-12">
-            <div className="text-5xl mb-4">📝</div>
-            <h3 className="text-base font-bold text-gray-900 mb-2">Contenu en cours d&apos;ajout</h3>
-            <p className="text-gray-500 text-sm">Ce module sera disponible prochainement.</p>
+            <div className="text-center p-12">
+              <div className="text-5xl mb-4">📝</div>
+            <h3 className="text-base font-bold text-gray-900 mb-2">
+              {loadError ? 'Erreur de chargement' : 'Contenu en cours d&apos;ajout'}
+            </h3>
+            <p className="text-gray-500 text-sm">
+              {loadError ? 'Recharge la page pour relancer le chargement des cours.' : 'Ce module sera disponible prochainement.'}
+            </p>
           </div>
         </div>
       )}
