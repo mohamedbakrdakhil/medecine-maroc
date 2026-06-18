@@ -135,7 +135,7 @@ export default function GLBModelViewer({ title, description, src }: GLBModelView
 
         model.position.sub(center)
         const maxDimension = Math.max(size.x, size.y, size.z)
-        if (maxDimension > 0) model.scale.setScalar(5.4 / maxDimension)
+        if (maxDimension > 0) model.scale.setScalar(10.5 / maxDimension)
 
         controls.target.set(0, 0, 0)
         controls.update()
@@ -145,6 +145,8 @@ export default function GLBModelViewer({ title, description, src }: GLBModelView
           mixerRef.current = mixer
           actionsRef.current = gltf.animations.map((clip) => mixer.clipAction(clip))
           actionsRef.current.forEach((action) => action.play())
+          mixer.setTime(76 / 24)
+          pausedRef.current = true
         }
 
         setIsLoading(false)
