@@ -8,6 +8,8 @@ export interface Chapter {
   sourceUrl?: string
   sourceLabel?: string
   sourcePages?: CoursePage[]
+  sourcePagesTitle?: string
+  sourcePagesSubtitle?: string
   keyPoints: KeyPoint[]
   sections: ContentSection[]
 }

@@ -110,8 +110,10 @@ function ChapterContent({ chapter, gradient }: { chapter: Chapter; gradient: str
       {chapter.sourcePages && chapter.sourcePages.length > 0 && (
         <section className="mt-10">
           <div className="border-t border-gray-100 pt-8 mb-5">
-            <h2 className="text-base font-bold text-teal-700 mb-1">Cours complet</h2>
-            <p className="text-xs text-gray-400">{chapter.sourcePages.length} pages du support original</p>
+            <h2 className="text-base font-bold text-teal-700 mb-1">{chapter.sourcePagesTitle ?? 'Cours complet'}</h2>
+            <p className="text-xs text-gray-400">
+              {chapter.sourcePagesSubtitle ?? `${chapter.sourcePages.length} pages du support original`}
+            </p>
           </div>
           <div className="space-y-5">
             {chapter.sourcePages.map((page, index) => (

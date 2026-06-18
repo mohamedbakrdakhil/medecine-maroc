@@ -8,6 +8,26 @@ const membreSuperieurPages = Array.from({ length: 43 }, (_, index) => {
   }
 })
 
+const thoraxPages = Array.from({ length: 37 }, (_, index) => {
+  const pageNumber = index + 1
+  return {
+    imageUrl: `/courses/euromed/s1/anatomie-1-s1/elkouache/pages/page-${String(pageNumber).padStart(2, '0')}.jpg`,
+    alt: `Anatomie du thorax - page ${pageNumber}`,
+  }
+})
+
+const thoraxQePages = [
+  { imageUrl: '/courses/euromed/s1/anatomie-1-s1/elkouache/qe/2018-n.jpg', alt: 'Anatomie du thorax - QE 2018 normal' },
+  { imageUrl: '/courses/euromed/s1/anatomie-1-s1/elkouache/qe/2018-ratt.jpg', alt: 'Anatomie du thorax - QE 2018 rattrapage' },
+  { imageUrl: '/courses/euromed/s1/anatomie-1-s1/elkouache/qe/2019-n.jpg', alt: 'Anatomie du thorax - QE 2019 normal' },
+  { imageUrl: '/courses/euromed/s1/anatomie-1-s1/elkouache/qe/2020-n.jpg', alt: 'Anatomie du thorax - QE 2020 normal' },
+  { imageUrl: '/courses/euromed/s1/anatomie-1-s1/elkouache/qe/2020-ratt.jpg', alt: 'Anatomie du thorax - QE 2020 rattrapage' },
+  { imageUrl: '/courses/euromed/s1/anatomie-1-s1/elkouache/qe/2021-n.jpg', alt: 'Anatomie du thorax - QE 2021 normal' },
+  { imageUrl: '/courses/euromed/s1/anatomie-1-s1/elkouache/qe/2022-n.png', alt: 'Anatomie du thorax - QE 2022 normal' },
+  { imageUrl: '/courses/euromed/s1/anatomie-1-s1/elkouache/qe/2023-n.jpg', alt: 'Anatomie du thorax - QE 2023 normal' },
+  { imageUrl: '/courses/euromed/s1/anatomie-1-s1/elkouache/qe/2023-ratt.jpg', alt: 'Anatomie du thorax - QE 2023 rattrapage' },
+]
+
 export const anatomieS1Chapters: Chapter[] = [
   {
     id: 'membre-superieur-introduction',
@@ -181,6 +201,47 @@ export const anatomieS1Chapters: Chapter[] = [
       {
         heading: 'Vascularisation artérielle',
         body: `La vascularisation artérielle du membre supérieur est présentée comme une synthèse après l'étude de l'avant-bras et de la main.\n\nElle doit être apprise en suivant le trajet des axes artériels depuis les régions proximales vers les régions distales, en gardant les rapports topographiques comme repères.`,
+      },
+    ],
+  },
+  {
+    id: 'anatomie-thorax',
+    title: 'Anatomie du thorax',
+    professor: 'Pr Elkouache',
+    sourceUrl: '/courses/euromed/s1/anatomie-1-s1/elkouache/anatomie-du-thorax.pdf',
+    sourceLabel: 'Document original',
+    sourcePages: thoraxPages,
+    sourcePagesSubtitle: '37 pages du support original',
+    keyPoints: [
+      { text: 'Cours d\'Anatomie I, Semestre 1, consacré au thorax' },
+      { text: 'Support complet du Pr Elkouache conservé page par page avec les schémas originaux' },
+      { text: 'Le cours couvre la paroi thoracique, la cage thoracique, les espaces intercostaux, le sein et le diaphragme' },
+      { text: 'Il présente aussi l\'appareil respiratoire, la trachée, les bronches, les poumons et la plèvre' },
+      { text: 'La partie cardio-médiastinale comprend le coeur, le péricarde et le médiastin' },
+    ],
+    sections: [
+      {
+        heading: 'Contenu du support',
+        body: `Le support original est intégré en entier dans la page sous forme d'images. Les schémas, coupes, vues anatomiques et annotations du PDF sont conservés.\n\nLes grandes parties sont : paroi thoracique, cage thoracique, espace intercostal, sein, diaphragme thoraco-abdominal, appareil respiratoire, poumons, plèvre, coeur, péricarde et médiastin.`,
+      },
+    ],
+  },
+  {
+    id: 'anatomie-thorax-qe',
+    title: 'QE - Anatomie du thorax',
+    professor: 'Questions d\'examen',
+    sourcePages: thoraxQePages,
+    sourcePagesTitle: 'Questions d\'examen',
+    sourcePagesSubtitle: '9 sujets et rattrapages de 2018 à 2023',
+    keyPoints: [
+      { text: 'Images de QE associées au cours Anatomie du thorax' },
+      { text: 'Années disponibles : 2018, 2019, 2020, 2021, 2022 et 2023' },
+      { text: 'Les sujets normaux et rattrapages disponibles sont conservés comme documents originaux' },
+    ],
+    sections: [
+      {
+        heading: 'Documents inclus',
+        body: `Cette section regroupe les questions d'examen disponibles dans le dossier du cours.\n\n• 2018 normal et rattrapage\n• 2019 normal\n• 2020 normal et rattrapage\n• 2021 normal\n• 2022 normal\n• 2023 normal et rattrapage`,
       },
     ],
   },
