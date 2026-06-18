@@ -33,8 +33,6 @@ export const anatomieS1Chapters: Chapter[] = [
     id: 'membre-superieur-introduction',
     title: 'Anatomie du membre supérieur',
     professor: 'Pr Chakour',
-    sourceUrl: '/courses/euromed/s1/anatomie-1-s1/chakour/anatomie-du-membre-superieur.pdf',
-    sourceLabel: 'Document original',
     sourcePages: membreSuperieurPages,
     keyPoints: [
       { text: 'Cours d\'Anatomie I, Semestre 1, consacré au membre supérieur' },
@@ -208,8 +206,6 @@ export const anatomieS1Chapters: Chapter[] = [
     id: 'anatomie-thorax',
     title: 'Anatomie du thorax',
     professor: 'Pr Elkouache',
-    sourceUrl: '/courses/euromed/s1/anatomie-1-s1/elkouache/anatomie-du-thorax.pdf',
-    sourceLabel: 'Document original',
     sourcePages: thoraxPages,
     sourcePagesSubtitle: '37 pages du support original',
     keyPoints: [
