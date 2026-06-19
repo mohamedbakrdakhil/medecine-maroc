@@ -1,4 +1,4 @@
-import type { Chapter } from './euromed-s2-biophysique'
+import type { Chapter } from './types'
 
 const membreSuperieurPages = Array.from({ length: 43 }, (_, index) => {
   const pageNumber = index + 1

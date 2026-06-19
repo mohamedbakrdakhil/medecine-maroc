@@ -1,4 +1,4 @@
-import type { Chapter } from './euromed-s2-biophysique'
+import type { Chapter } from './types'
 
 export const santePubliqueS1Chapters: Chapter[] = [
   {

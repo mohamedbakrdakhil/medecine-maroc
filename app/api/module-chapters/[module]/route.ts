@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server'
-import { biophysiqueChapters } from '@/lib/content/euromed-s2-biophysique'
 import { anatomieS1Chapters } from '@/lib/content/euromed-s1-anatomie'
 import { anatomieS1ExtraChapters } from '@/lib/content/euromed-s1-anatomie-extra'
 import { biologieS1Chapters } from '@/lib/content/euromed-s1-biologie'
@@ -15,7 +14,6 @@ const moduleChapters = {
   'chimie-biochimie-1-s1': chimieBiochimieS1Chapters,
   'methodologie-1-s1': methodologieS1Chapters,
   'sante-publique-1-s1': santePubliqueS1Chapters,
-  'biophysique-s2': biophysiqueChapters,
 }
 
 export async function GET(
