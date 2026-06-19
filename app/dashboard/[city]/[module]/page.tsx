@@ -99,7 +99,7 @@ function ChapterContent({ chapter, gradient }: { chapter: Chapter; gradient: str
               <h2 className="text-base font-bold text-teal-700 mb-1">{model.title}</h2>
               {model.description && <p className="text-xs text-gray-400">{model.description}</p>}
             </div>
-            <MembreSuperieur3DViewerV4 modelUrl={model.src} height={720} />
+            <MembreSuperieur3DViewerV4 modelUrl={model.src} height={860} />
           </section>
         ) : (
           <GLBModelViewer

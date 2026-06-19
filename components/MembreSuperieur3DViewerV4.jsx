@@ -4,11 +4,12 @@ import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 
 const DEFAULT_MODEL_URL = '/models/euromed/s1/anatomie/anatomie_membre_superieur_v2_premium.glb';
 const FPS = 24;
 const STATIC_FRAME = 52;
-const LABEL_MAX_COUNT = 28;
+const LABEL_MAX_COUNT = 18;
 
 const anatomicalPrefixes = ['BONE_', 'JOINT_', 'LIGAMENT_', 'MUSCLE_', 'TENDON_', 'NERVE_', 'ARTERY_', 'VEIN_', 'FLOW_', 'SKIN_', 'LABEL_'];
 const interactivePrefixes = ['BONE_', 'JOINT_', 'LIGAMENT_', 'MUSCLE_', 'TENDON_', 'NERVE_', 'ARTERY_', 'VEIN_', 'SKIN_'];
@@ -79,9 +80,10 @@ export default function MembreSuperieur3DViewerV4({ modelUrl = DEFAULT_MODEL_URL
   const apiRef = useRef({});
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState({ title: 'Clique sur une structure anatomique', meta: 'Nom, couche, page et description apparaîtront ici.', text: 'Clique sur une structure du modèle pour afficher sa description.', tags: [] });
-  const [labelsOn, setLabelsOn] = useState(true);
+  const [labelsOn, setLabelsOn] = useState(false);
   const [zoomOn, setZoomOn] = useState(true);
   const [focusOn, setFocusOn] = useState(false);
+  const [studioOn, setStudioOn] = useState(true);
   const [time, setTime] = useState('Temps : 0.00 s');
 
   useEffect(() => {
@@ -102,6 +104,7 @@ export default function MembreSuperieur3DViewerV4({ modelUrl = DEFAULT_MODEL_URL
     let modelSize = 5;
     let htmlLabels = [];
     let lastPickedPoint = null;
+    let studioMode = true;
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(42, container.clientWidth / container.clientHeight, 0.01, 1000);
@@ -109,8 +112,15 @@ export default function MembreSuperieur3DViewerV4({ modelUrl = DEFAULT_MODEL_URL
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.setSize(container.clientWidth, container.clientHeight);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.08;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFShadowMap;
     renderer.setClearColor(0xf8fafc, 1);
     container.appendChild(renderer.domElement);
+
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
@@ -122,17 +132,22 @@ export default function MembreSuperieur3DViewerV4({ modelUrl = DEFAULT_MODEL_URL
     const supportsNativeZoomToCursor = 'zoomToCursor' in controls;
     if (supportsNativeZoomToCursor) controls.zoomToCursor = true;
 
-    scene.add(new THREE.HemisphereLight(0xffffff, 0xdbeafe, 2.0));
+    scene.add(new THREE.HemisphereLight(0xffffff, 0xcbd5e1, 2.25));
     const key = new THREE.DirectionalLight(0xffffff, 3.0);
     key.position.set(4, -6, 5);
+    key.castShadow = true;
+    key.shadow.mapSize.set(2048, 2048);
     scene.add(key);
-    const rim = new THREE.DirectionalLight(0xffffff, 1.35);
-    rim.position.set(-4, 4, 3);
+    const fill = new THREE.DirectionalLight(0xbfefff, 1.45);
+    fill.position.set(-5, 3, 4);
+    scene.add(fill);
+    const rim = new THREE.DirectionalLight(0xffffff, 1.65);
+    rim.position.set(-4, 4, 5);
     scene.add(rim);
 
     const raycaster = new THREE.Raycaster();
     const pointer = new THREE.Vector2();
-    const clock = new THREE.Clock();
+    let lastRenderTime = performance.now();
 
     const isInteractiveMesh = (obj) => obj.isMesh && obj.visible && interactivePrefixes.some((p) => obj.name.startsWith(p));
     const visibleMeshes = () => { const arr = []; model?.traverse((o) => { if (isInteractiveMesh(o)) arr.push(o); }); return arr; };
@@ -181,6 +196,7 @@ export default function MembreSuperieur3DViewerV4({ modelUrl = DEFAULT_MODEL_URL
       setLabelsOn(labelsVisible);
       setZoomOn(zoomToCursor);
       setFocusOn(focusLocked);
+      setStudioOn(studioMode);
       if (supportsNativeZoomToCursor) controls.zoomToCursor = zoomToCursor && !focusLocked;
     };
     const updateFocusMarker = () => {
@@ -192,7 +208,7 @@ export default function MembreSuperieur3DViewerV4({ modelUrl = DEFAULT_MODEL_URL
       focusMarker.style.left = `${(p.x * 0.5 + 0.5) * rect.width}px`;
       focusMarker.style.top = `${(-p.y * 0.5 + 0.5) * rect.height}px`;
     };
-    const fitCameraToModel = (direction = new THREE.Vector3(0.62, -1.0, 0.28), padding = 1.22) => {
+    const fitCameraToModel = (direction = new THREE.Vector3(0.58, -1.0, 0.34), padding = 0.78) => {
       if (!model) return;
       const box = computeBox(false);
       modelCenter = box.getCenter(new THREE.Vector3());
@@ -207,7 +223,7 @@ export default function MembreSuperieur3DViewerV4({ modelUrl = DEFAULT_MODEL_URL
       camera.updateProjectionMatrix();
       camera.position.copy(modelCenter).add(direction.clone().normalize().multiplyScalar(distance));
       controls.target.copy(modelCenter);
-      controls.minDistance = modelSize * 0.035;
+      controls.minDistance = modelSize * 0.025;
       controls.maxDistance = modelSize * 9;
       focusLocked = false;
       focusPoint = null;
@@ -256,6 +272,17 @@ export default function MembreSuperieur3DViewerV4({ modelUrl = DEFAULT_MODEL_URL
         item.el.style.left = `${(p.x * 0.5 + 0.5) * rect.width}px`;
         item.el.style.top = `${(-p.y * 0.5 + 0.5) * rect.height}px`;
       });
+      const visible = htmlLabels
+        .map((item) => ({ item, rect: item.el.getBoundingClientRect() }))
+        .filter(({ item }) => item.el.style.display !== 'none' && item.obj.visible);
+      const kept = [];
+      visible.forEach(({ item, rect }) => {
+        const overlaps = kept.some((other) => !(
+          rect.right < other.left - 8 || rect.left > other.right + 8 || rect.bottom < other.top - 8 || rect.top > other.bottom + 8
+        ));
+        if (overlaps) item.el.style.display = 'none';
+        else kept.push(rect);
+      });
     };
     const setVisibilityByPrefix = (prefixes, visible) => {
       model?.traverse((obj) => { if (obj.name && prefixes.some((p) => obj.name.startsWith(p))) obj.visible = visible; });
@@ -268,9 +295,20 @@ export default function MembreSuperieur3DViewerV4({ modelUrl = DEFAULT_MODEL_URL
         materials.filter(Boolean).forEach((material) => {
           material.depthWrite = true;
           material.side = THREE.DoubleSide;
+          if ('roughness' in material) material.roughness = Math.min(material.roughness ?? 0.72, 0.78);
+          if ('metalness' in material) material.metalness = Math.min(material.metalness ?? 0, 0.04);
+          if ('envMapIntensity' in material) material.envMapIntensity = 0.72;
           material.needsUpdate = true;
         });
+        obj.castShadow = true;
+        obj.receiveShadow = true;
       });
+    };
+    const setStudioMode = (enabled) => {
+      studioMode = enabled;
+      renderer.toneMappingExposure = enabled ? 1.08 : 0.92;
+      renderer.setClearColor(enabled ? 0xf8fafc : 0x0f172a, 1);
+      updateButtons();
     };
     const showAllLayers = (refit = true) => {
       model?.traverse((obj) => { if (obj.name && anatomicalPrefixes.some((p) => obj.name.startsWith(p))) obj.visible = true; });
@@ -366,6 +404,9 @@ export default function MembreSuperieur3DViewerV4({ modelUrl = DEFAULT_MODEL_URL
       toggleZoom: () => { zoomToCursor = !zoomToCursor; updateButtons(); },
       toggleFocus: () => { if (!focusPoint && lastPickedPoint) focusPoint = lastPickedPoint.clone(); if (!focusPoint) return; focusLocked = !focusLocked; if (focusLocked) controls.target.copy(focusPoint); updateButtons(); updateFocusMarker(); },
       reset: () => { fitCameraToModel(); labelsVisible = true; updateButtons(); updateHtmlLabels(); },
+      blender: () => { paused = true; setAnimationFrame(52); showAllLayers(false); setVisibilityByPrefix(['LABEL_', 'FLOW_'], false); labelsVisible = false; fitCameraToModel(new THREE.Vector3(0.48, -1, 0.18), 0.62); updateButtons(); updateHtmlLabels(); },
+      close: () => { fitCameraToModel(new THREE.Vector3(0.5, -1, 0.32), 0.48); },
+      toggleStudio: () => setStudioMode(!studioMode),
       onlyBones: () => showOnly(['BONE_', 'JOINT_', 'LIGAMENT_']),
       onlyMuscles: () => showOnly(['MUSCLE_', 'TENDON_']),
       onlyNerves: () => showOnly(['NERVE_', 'FLOW_NERVE']),
@@ -376,7 +417,7 @@ export default function MembreSuperieur3DViewerV4({ modelUrl = DEFAULT_MODEL_URL
       preset: (name) => {
         const dirs = { global: [0.62, -1, 0.28], axilla: [0.95, -1, 0.52], shoulder: [0.8, -0.95, 0.4], elbow: [0.45, -1, 0.1], forearm: [0.55, -1, -0.12], hand: [0.5, -1, -0.36] };
         const dir = new THREE.Vector3(...(dirs[name] || dirs.global));
-        fitCameraToModel(dir, name === 'global' ? 1.22 : 0.95);
+        fitCameraToModel(dir, name === 'global' ? 0.78 : 0.58);
         const offsets = { axilla: [0,0,modelSize*.28], shoulder: [.02,0,modelSize*.25], elbow: [.03,0,0], forearm: [.05,0,-modelSize*.23], hand: [.07,0,-modelSize*.43] };
         if (offsets[name]) centerCameraOnPoint(modelCenter.clone().add(new THREE.Vector3(...offsets[name])), 0.92);
       },
@@ -411,7 +452,9 @@ export default function MembreSuperieur3DViewerV4({ modelUrl = DEFAULT_MODEL_URL
     const animate = () => {
       if (destroyed) return;
       requestAnimationFrame(animate);
-      const dt = clock.getDelta();
+      const now = performance.now();
+      const dt = Math.min((now - lastRenderTime) / 1000, 0.05);
+      lastRenderTime = now;
       if (mixer && !paused) {
         mixer.update(dt);
         const max = Number(timelineRef.current?.max || 1);
@@ -442,6 +485,7 @@ export default function MembreSuperieur3DViewerV4({ modelUrl = DEFAULT_MODEL_URL
       renderer.domElement.removeEventListener('wheel', onWheel, { capture: true });
       controls.dispose();
       renderer.dispose();
+      pmrem.dispose();
       if (renderer.domElement.parentNode) renderer.domElement.parentNode.removeChild(renderer.domElement);
     };
   }, [modelUrl]);
@@ -454,10 +498,13 @@ export default function MembreSuperieur3DViewerV4({ modelUrl = DEFAULT_MODEL_URL
         {loading && <div className="ms-loading">Chargement du modèle 3D…</div>}
         <div className="ms-top-tools">
           <button className="primary" onClick={() => apiRef.current.static?.()}>Modèle centré</button>
+          <button className="primary" onClick={() => apiRef.current.blender?.()}>Vue Blender</button>
+          <button onClick={() => apiRef.current.close?.()}>Zoom détail</button>
           <button onClick={() => apiRef.current.play?.()}>Lire</button>
           <button className="danger" onClick={() => apiRef.current.pause?.()}>Stop/Pause</button>
           <button className={labelsOn ? 'active' : ''} onClick={() => apiRef.current.toggleLabels?.()}>{labelsOn ? 'Noms ON' : 'Noms OFF'}</button>
           <button className={zoomOn ? 'active' : ''} onClick={() => apiRef.current.toggleZoom?.()}>{zoomOn ? 'Zoom curseur ON' : 'Zoom curseur OFF'}</button>
+          <button className={studioOn ? 'active' : ''} onClick={() => apiRef.current.toggleStudio?.()}>{studioOn ? 'Studio ON' : 'Studio OFF'}</button>
           <button className={focusOn ? 'active' : ''} onClick={() => apiRef.current.toggleFocus?.()}>{focusOn ? 'Verrou POI ON' : 'Verrou POI OFF'}</button>
           <button onClick={() => apiRef.current.reset?.()}>Reset vue</button>
         </div>
@@ -474,6 +521,8 @@ export default function MembreSuperieur3DViewerV4({ modelUrl = DEFAULT_MODEL_URL
           <button className="danger" onClick={() => apiRef.current.pause?.()}>Stop</button>
           <button onClick={() => apiRef.current.restart?.()}>Recommencer</button>
           <button className="primary" onClick={() => apiRef.current.static?.()}>Vue étude</button>
+          <button className="primary" onClick={() => apiRef.current.blender?.()}>Vue Blender</button>
+          <button onClick={() => apiRef.current.close?.()}>Zoom détail</button>
         </div>
         <input className="ms-timeline" ref={timelineRef} type="range" min="0" max="6" step="0.01" defaultValue="0" onInput={(e) => apiRef.current.scrub?.(e.currentTarget.value)} />
         <div className="ms-time">{time}</div>
@@ -508,7 +557,7 @@ export default function MembreSuperieur3DViewerV4({ modelUrl = DEFAULT_MODEL_URL
         .ms3d-viewer canvas{display:block;width:100%;height:100%;cursor:grab}.ms3d-viewer canvas:active{cursor:grabbing}
         .ms-loading{position:absolute;inset:0;display:grid;place-items:center;background:rgba(255,255,255,.7);color:#64748b;font-weight:800;z-index:8}
         .ms-top-tools{position:absolute;left:12px;right:12px;top:12px;display:flex;flex-wrap:wrap;gap:8px;z-index:6;pointer-events:none}.ms-top-tools button,.ms-panel button{appearance:none;border:1px solid rgba(15,23,42,.08);border-radius:999px;background:rgba(255,255,255,.93);font-size:12px;font-weight:850;padding:8px 11px;cursor:pointer;box-shadow:0 6px 18px rgba(15,23,42,.07);pointer-events:auto}.ms-top-tools button:hover,.ms-panel button:hover{background:#ecfeff}.ms-top-tools .active,.ms-panel .active{background:#ccfbf1;color:#0f766e}.ms-top-tools .primary,.ms-panel .primary{background:#cffafe;color:#155e75}.ms-top-tools .danger,.ms-panel .danger{background:#fff1f2;color:#be123c}
-        .ms-hud{position:absolute;left:14px;bottom:14px;max-width:min(560px,calc(100% - 28px));background:rgba(15,23,42,.86);color:white;border-radius:16px;padding:14px 16px;box-shadow:0 20px 70px rgba(15,23,42,.25);pointer-events:none}.ms-hud-title{font-size:17px;font-weight:950}.ms-hud-meta{margin-top:4px;color:#cbd5e1;font-size:12px}.ms-hud-hint{margin-top:9px;color:#67e8f9;font-size:12px;line-height:1.45}
+        .ms-hud{position:absolute;right:14px;bottom:14px;max-width:min(340px,calc(100% - 28px));background:rgba(15,23,42,.82);color:white;border-radius:14px;padding:12px 14px;box-shadow:0 18px 54px rgba(15,23,42,.22);pointer-events:none}.ms-hud-title{font-size:15px;font-weight:950}.ms-hud-meta{margin-top:3px;color:#cbd5e1;font-size:11px}.ms-hud-hint{margin-top:7px;color:#67e8f9;font-size:11px;line-height:1.4}
         .ms-html-labels{position:absolute;inset:0;z-index:3;pointer-events:none}.ms-html-label{position:absolute;transform:translate(-50%,-50%);max-width:190px;padding:5px 8px;border-radius:10px;background:rgba(15,23,42,.88);color:white;font-size:14px;line-height:1.12;font-weight:900;text-align:center;box-shadow:0 8px 24px rgba(15,23,42,.22);border:1px solid rgba(255,255,255,.18)}
         .ms-focus-marker{position:absolute;width:26px;height:26px;display:none;z-index:7;pointer-events:none;border:2px solid #f59e0b;border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 28px rgba(245,158,11,.9),inset 0 0 10px rgba(245,158,11,.45)}.ms-focus-marker:before,.ms-focus-marker:after{content:"";position:absolute;background:#f59e0b;left:50%;top:50%;transform:translate(-50%,-50%)}.ms-focus-marker:before{width:38px;height:2px}.ms-focus-marker:after{width:2px;height:38px}
         .ms-panel{border:1px solid #e2e8f0;border-radius:18px;background:#fff;padding:16px;box-shadow:0 20px 60px rgba(15,23,42,.07);overflow:auto}.ms-section-title{color:#0891b2;font-size:12px;font-weight:950;text-transform:uppercase;letter-spacing:.06em;margin:0 0 10px}.ms-section-title.mt{margin-top:18px}.ms-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.ms-grid .full{grid-column:1/-1}.ms-timeline{width:100%;margin-top:12px;accent-color:#0891b2}.ms-time{color:#64748b;font-size:12px;margin-top:5px}.ms-description{margin-top:18px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:13px}.ms-description h3{margin:0 0 6px;color:#0f766e;font-size:16px}.ms-description p{margin:0;color:#334155;font-size:13px;line-height:1.55}.ms-tag{display:inline-block;margin:8px 6px 0 0;border-radius:999px;background:rgba(8,145,178,.12);color:#155e75;padding:4px 8px;font-size:11px;font-weight:900}
