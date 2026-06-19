@@ -10,6 +10,7 @@ const DEFAULT_MODEL_URL = '/models/euromed/s1/anatomie/anatomie_membre_superieur
 const FPS = 24;
 const STATIC_FRAME = 52;
 const LABEL_MAX_COUNT = 18;
+const SLOW_MOTION_SPEED = 0.18;
 
 const anatomicalPrefixes = ['BONE_', 'JOINT_', 'LIGAMENT_', 'MUSCLE_', 'TENDON_', 'NERVE_', 'ARTERY_', 'VEIN_', 'FLOW_', 'SKIN_', 'LABEL_'];
 const interactivePrefixes = ['BONE_', 'JOINT_', 'LIGAMENT_', 'MUSCLE_', 'TENDON_', 'NERVE_', 'ARTERY_', 'VEIN_', 'SKIN_'];
@@ -98,6 +99,7 @@ export default function MembreSuperieur3DViewerV4({ modelUrl = DEFAULT_MODEL_URL
     let model = null;
     let mixer = null;
     let paused = true;
+    let animationDuration = 6;
     let labelsVisible = true;
     let zoomToCursor = true;
     let focusLocked = false;
@@ -177,14 +179,20 @@ export default function MembreSuperieur3DViewerV4({ modelUrl = DEFAULT_MODEL_URL
       if (box.isEmpty()) box.setFromObject(model);
       return box;
     };
-    const setAnimationFrame = (frame) => {
-      if (!mixer) return;
-      const seconds = frame / FPS;
-      mixer.setTime(seconds);
+    const updateAnimationHud = (seconds) => {
+      const duration = Math.max(animationDuration, 0.001);
+      const progress = Math.round((THREE.MathUtils.clamp(seconds, 0, duration) / duration) * 100);
       if (timelineRef.current) timelineRef.current.value = String(seconds);
-      setTime(`Frame ${frame} — ${seconds.toFixed(2)} s`);
+      setTime(`Assemblage slow motion : ${progress}% — ${seconds.toFixed(2)} s`);
+    };
+    const setAnimationTime = (seconds) => {
+      if (!mixer) return;
+      const clamped = THREE.MathUtils.clamp(seconds, 0, animationDuration);
+      mixer.setTime(clamped);
+      updateAnimationHud(clamped);
       model?.updateMatrixWorld(true);
     };
+    const setAnimationFrame = (frame) => setAnimationTime(frame / FPS);
     const normalizeModelOnce = () => {
       if (!model) return;
       const box = computeBox(false);
@@ -445,9 +453,9 @@ export default function MembreSuperieur3DViewerV4({ modelUrl = DEFAULT_MODEL_URL
     apiRef.current = {
       play: () => { paused = false; },
       pause: () => { paused = true; },
-      restart: () => { if (mixer) { mixer.setTime(0); paused = false; } },
+      restart: () => { if (mixer) { setAnimationTime(0); paused = false; showAllLayers(false); setVisibilityByPrefix(['LABEL_', 'FLOW_'], false); labelsVisible = false; updateButtons(); } },
       static: () => { paused = true; setAnimationFrame(STATIC_FRAME); showAllLayers(false); fitCameraToModel(); buildHtmlLabels(); },
-      scrub: (seconds) => { if (mixer) { paused = true; mixer.setTime(Number(seconds)); setTime(`Temps : ${Number(seconds).toFixed(2)} s`); } },
+      scrub: (seconds) => { if (mixer) { paused = true; setAnimationTime(Number(seconds)); } },
       zoomIn: () => zoomCamera(0.72),
       zoomOut: () => zoomCamera(1.32),
       toggleLabels: () => { labelsVisible = !labelsVisible; updateButtons(); updateHtmlLabels(); },
@@ -481,8 +489,16 @@ export default function MembreSuperieur3DViewerV4({ modelUrl = DEFAULT_MODEL_URL
       prepareMeshesForStudyView();
       mixer = new THREE.AnimationMixer(model);
       const actions = (gltf.animations || []).map((clip) => mixer.clipAction(clip));
-      actions.forEach((action) => action.play());
-      if (gltf.animations?.length && timelineRef.current) timelineRef.current.max = String(Math.max(...gltf.animations.map((c) => c.duration)));
+      actions.forEach((action) => {
+        action.setLoop(THREE.LoopOnce, 1);
+        action.clampWhenFinished = true;
+        action.enabled = true;
+        action.play();
+      });
+      if (gltf.animations?.length) {
+        animationDuration = Math.max(...gltf.animations.map((c) => c.duration));
+        if (timelineRef.current) timelineRef.current.max = String(animationDuration);
+      }
       setAnimationFrame(STATIC_FRAME);
       normalizeModelOnce();
       setAnimationFrame(STATIC_FRAME);
@@ -507,11 +523,9 @@ export default function MembreSuperieur3DViewerV4({ modelUrl = DEFAULT_MODEL_URL
       const dt = Math.min((now - lastRenderTime) / 1000, 0.05);
       lastRenderTime = now;
       if (mixer && !paused) {
-        mixer.update(dt);
-        const max = Number(timelineRef.current?.max || 1);
-        const current = mixer.time % max;
-        if (timelineRef.current) timelineRef.current.value = String(current);
-        setTime(`Temps : ${current.toFixed(2)} s`);
+        const nextTime = Math.min(mixer.time + dt * SLOW_MOTION_SPEED, animationDuration);
+        setAnimationTime(nextTime);
+        if (nextTime >= animationDuration - 0.001) paused = true;
       }
       controls.update();
       updateHtmlLabels();
@@ -574,7 +588,7 @@ export default function MembreSuperieur3DViewerV4({ modelUrl = DEFAULT_MODEL_URL
           <button onClick={() => apiRef.current.zoomOut?.()}>Zoom -</button>
           <button onClick={() => apiRef.current.close?.()}>Zoom détail</button>
           <button className="primary" onClick={() => apiRef.current.isolateSelected?.()}>Isoler sélection</button>
-          <button onClick={() => apiRef.current.play?.()}>Lire</button>
+          <button onClick={() => apiRef.current.play?.()}>Assemblage lent</button>
           <button className="danger" onClick={() => apiRef.current.pause?.()}>Stop/Pause</button>
           <button className={labelsOn ? 'active' : ''} onClick={() => apiRef.current.toggleLabels?.()}>{labelsOn ? 'Noms ON' : 'Noms OFF'}</button>
           <button className={zoomOn ? 'active' : ''} onClick={() => apiRef.current.toggleZoom?.()}>{zoomOn ? 'Zoom curseur ON' : 'Zoom curseur OFF'}</button>
@@ -594,9 +608,9 @@ export default function MembreSuperieur3DViewerV4({ modelUrl = DEFAULT_MODEL_URL
           <button className="primary full" onClick={toggleFullScreen}>{fullScreenOn ? 'Quitter le plein écran' : 'Ouvrir en plein écran'}</button>
           <button onClick={() => apiRef.current.zoomIn?.()}>Zoom +</button>
           <button onClick={() => apiRef.current.zoomOut?.()}>Zoom -</button>
-          <button onClick={() => apiRef.current.play?.()}>Lire</button>
+          <button onClick={() => apiRef.current.play?.()}>Assemblage lent</button>
           <button className="danger" onClick={() => apiRef.current.pause?.()}>Stop</button>
-          <button onClick={() => apiRef.current.restart?.()}>Recommencer</button>
+          <button onClick={() => apiRef.current.restart?.()}>Rejouer assemblage</button>
           <button className="primary" onClick={() => apiRef.current.static?.()}>Vue étude</button>
           <button className="primary" onClick={() => apiRef.current.blender?.()}>Vue Blender</button>
           <button onClick={() => apiRef.current.close?.()}>Zoom détail</button>
@@ -641,7 +655,7 @@ export default function MembreSuperieur3DViewerV4({ modelUrl = DEFAULT_MODEL_URL
         .ms-hud{position:absolute;right:14px;bottom:14px;max-width:min(340px,calc(100% - 28px));background:rgba(15,23,42,.82);color:white;border-radius:14px;padding:12px 14px;box-shadow:0 18px 54px rgba(15,23,42,.22);pointer-events:none}.ms-hud-title{font-size:15px;font-weight:950}.ms-hud-meta{margin-top:3px;color:#cbd5e1;font-size:11px}.ms-hud-hint{margin-top:7px;color:#67e8f9;font-size:11px;line-height:1.4}
         .ms-html-labels{position:absolute;inset:0;z-index:3;pointer-events:none}.ms-html-label{position:absolute;transform:translate(-50%,-50%);max-width:190px;padding:5px 8px;border-radius:10px;background:rgba(15,23,42,.88);color:white;font-size:14px;line-height:1.12;font-weight:900;text-align:center;box-shadow:0 8px 24px rgba(15,23,42,.22);border:1px solid rgba(255,255,255,.18)}
         .ms-focus-marker{position:absolute;width:26px;height:26px;display:none;z-index:7;pointer-events:none;border:2px solid #f59e0b;border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 28px rgba(245,158,11,.9),inset 0 0 10px rgba(245,158,11,.45)}.ms-focus-marker:before,.ms-focus-marker:after{content:"";position:absolute;background:#f59e0b;left:50%;top:50%;transform:translate(-50%,-50%)}.ms-focus-marker:before{width:38px;height:2px}.ms-focus-marker:after{width:2px;height:38px}
-        .ms-panel{border:1px solid #e2e8f0;border-radius:18px;background:#fff;padding:16px;box-shadow:0 20px 60px rgba(15,23,42,.07);overflow:auto}.ms-section-title{color:#0891b2;font-size:12px;font-weight:950;text-transform:uppercase;letter-spacing:.06em;margin:0 0 10px}.ms-section-title.mt{margin-top:18px}.ms-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.ms-grid .full{grid-column:1/-1}.ms-timeline{width:100%;margin-top:12px;accent-color:#0891b2}.ms-time{color:#64748b;font-size:12px;margin-top:5px}.ms-description{margin-top:18px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:13px}.ms-description h3{margin:0 0 6px;color:#0f766e;font-size:16px}.ms-description p{margin:0;color:#334155;font-size:13px;line-height:1.55}.ms-tag{display:inline-block;margin:8px 6px 0 0;border-radius:999px;background:rgba(8,145,178,.12);color:#155e75;padding:4px 8px;font-size:11px;font-weight:900}
+        .ms-panel{border:1px solid #e2e8f0;border-radius:18px;background:#fff;padding:16px;box-shadow:0 20px 60px rgba(15,23,42,.07);overflow:auto}.ms-section-title{color:#0891b2;font-size:12px;font-weight:950;text-transform:uppercase;letter-spacing:.06em;margin:0 0 10px}.ms-section-title.mt{margin-top:18px}.ms-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.ms-grid .full{grid-column:1/-1}.ms-timeline{width:100%;margin-top:12px;accent-color:#0891b2}.ms-timeline::-webkit-slider-thumb{box-shadow:0 0 0 6px rgba(8,145,178,.14),0 0 18px rgba(34,211,238,.55)}.ms-time{color:#64748b;font-size:12px;margin-top:5px}.ms-description{margin-top:18px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:13px}.ms-description h3{margin:0 0 6px;color:#0f766e;font-size:16px}.ms-description p{margin:0;color:#334155;font-size:13px;line-height:1.55}.ms-tag{display:inline-block;margin:8px 6px 0 0;border-radius:999px;background:rgba(8,145,178,.12);color:#155e75;padding:4px 8px;font-size:11px;font-weight:900}
         @media(max-width:1100px){.ms3d-root,.ms3d-root.fullscreen{grid-template-columns:1fr}.ms-panel{max-height:none}.ms3d-root.fullscreen{overflow:auto}.ms3d-root.fullscreen .ms-panel{max-height:none}}@media(max-width:640px){.ms3d-viewer{border-radius:14px}.ms-html-label{font-size:12px;max-width:140px}.ms-top-tools button{font-size:11px;padding:7px 9px}}
       `}</style>
     </div>
