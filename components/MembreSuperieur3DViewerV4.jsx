@@ -78,12 +78,14 @@ export default function MembreSuperieur3DViewerV4({ modelUrl = DEFAULT_MODEL_URL
   const focusMarkerRef = useRef(null);
   const timelineRef = useRef(null);
   const apiRef = useRef({});
+  const rootRef = useRef(null);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState({ title: 'Clique sur une structure anatomique', meta: 'Nom, couche, page et description apparaîtront ici.', text: 'Clique sur une structure du modèle pour afficher sa description.', tags: [] });
   const [labelsOn, setLabelsOn] = useState(false);
   const [zoomOn, setZoomOn] = useState(true);
   const [focusOn, setFocusOn] = useState(false);
   const [studioOn, setStudioOn] = useState(true);
+  const [fullScreenOn, setFullScreenOn] = useState(false);
   const [time, setTime] = useState('Temps : 0.00 s');
 
   useEffect(() => {
@@ -104,6 +106,7 @@ export default function MembreSuperieur3DViewerV4({ modelUrl = DEFAULT_MODEL_URL
     let modelSize = 5;
     let htmlLabels = [];
     let lastPickedPoint = null;
+    let selectedObject = null;
     let studioMode = true;
 
     const scene = new THREE.Scene();
@@ -231,6 +234,16 @@ export default function MembreSuperieur3DViewerV4({ modelUrl = DEFAULT_MODEL_URL
       updateFocusMarker();
       updateButtons();
     };
+    const zoomCamera = (factor) => {
+      const offset = camera.position.clone().sub(controls.target);
+      const nextDistance = THREE.MathUtils.clamp(
+        offset.length() * factor,
+        controls.minDistance || modelSize * 0.025,
+        controls.maxDistance || modelSize * 9,
+      );
+      camera.position.copy(controls.target).add(offset.normalize().multiplyScalar(nextDistance));
+      controls.update();
+    };
     const buildHtmlLabels = () => {
       labelLayer.innerHTML = '';
       htmlLabels = [];
@@ -314,6 +327,7 @@ export default function MembreSuperieur3DViewerV4({ modelUrl = DEFAULT_MODEL_URL
       model?.traverse((obj) => { if (obj.name && anatomicalPrefixes.some((p) => obj.name.startsWith(p))) obj.visible = true; });
       setVisibilityByPrefix(['LABEL_'], false);
       labelsVisible = true;
+      selectedObject = null;
       buildHtmlLabels();
       updateButtons();
       if (refit) fitCameraToModel();
@@ -342,6 +356,7 @@ export default function MembreSuperieur3DViewerV4({ modelUrl = DEFAULT_MODEL_URL
       const obj = hit?.object;
       if (!obj) return;
       const info = getDescription(obj);
+      selectedObject = obj;
       lastPickedPoint = hit.point.clone();
       const page = obj?.userData?.course_page || '';
       setSelected({
@@ -356,6 +371,39 @@ export default function MembreSuperieur3DViewerV4({ modelUrl = DEFAULT_MODEL_URL
         controls.target.copy(focusPoint);
         updateButtons();
         updateFocusMarker();
+      }
+    };
+    const isolateSelectedObject = () => {
+      if (!model || !selectedObject) {
+        setSelected((current) => ({
+          ...current,
+          text: `${current.text} Sélectionne d'abord une structure dans le modèle, puis clique sur Isoler sélection.`,
+        }));
+        return;
+      }
+      const keep = selectedObject.uuid;
+      model.traverse((obj) => {
+        if (!obj.isMesh || !obj.name) return;
+        const anatomical = anatomicalPrefixes.some((p) => obj.name.startsWith(p));
+        if (anatomical) obj.visible = obj.uuid === keep;
+      });
+      setVisibilityByPrefix(['LABEL_', 'FLOW_'], false);
+      labelsVisible = false;
+      buildHtmlLabels();
+      updateButtons();
+      const box = new THREE.Box3().setFromObject(selectedObject);
+      if (!box.isEmpty()) {
+        const center = box.getCenter(new THREE.Vector3());
+        const size = box.getSize(new THREE.Vector3());
+        const targetSize = Math.max(size.x, size.y, size.z, modelSize * 0.08);
+        controls.target.copy(center);
+        camera.position.copy(center).add(new THREE.Vector3(0.55, -1, 0.35).normalize().multiplyScalar(targetSize * 3.4));
+        controls.minDistance = targetSize * 0.35;
+        controls.maxDistance = Math.max(targetSize * 12, modelSize * 2);
+        camera.near = Math.max(0.0005, targetSize / 500);
+        camera.far = Math.max(modelSize * 120, targetSize * 200);
+        camera.updateProjectionMatrix();
+        controls.update();
       }
     };
     const zoomAroundPoint = (point, deltaY) => {
@@ -400,12 +448,15 @@ export default function MembreSuperieur3DViewerV4({ modelUrl = DEFAULT_MODEL_URL
       restart: () => { if (mixer) { mixer.setTime(0); paused = false; } },
       static: () => { paused = true; setAnimationFrame(STATIC_FRAME); showAllLayers(false); fitCameraToModel(); buildHtmlLabels(); },
       scrub: (seconds) => { if (mixer) { paused = true; mixer.setTime(Number(seconds)); setTime(`Temps : ${Number(seconds).toFixed(2)} s`); } },
+      zoomIn: () => zoomCamera(0.72),
+      zoomOut: () => zoomCamera(1.32),
       toggleLabels: () => { labelsVisible = !labelsVisible; updateButtons(); updateHtmlLabels(); },
       toggleZoom: () => { zoomToCursor = !zoomToCursor; updateButtons(); },
       toggleFocus: () => { if (!focusPoint && lastPickedPoint) focusPoint = lastPickedPoint.clone(); if (!focusPoint) return; focusLocked = !focusLocked; if (focusLocked) controls.target.copy(focusPoint); updateButtons(); updateFocusMarker(); },
       reset: () => { fitCameraToModel(); labelsVisible = true; updateButtons(); updateHtmlLabels(); },
       blender: () => { paused = true; setAnimationFrame(52); showAllLayers(false); setVisibilityByPrefix(['LABEL_', 'FLOW_'], false); labelsVisible = false; fitCameraToModel(new THREE.Vector3(0.48, -1, 0.18), 0.62); updateButtons(); updateHtmlLabels(); },
       close: () => { fitCameraToModel(new THREE.Vector3(0.5, -1, 0.32), 0.48); },
+      isolateSelected: () => isolateSelectedObject(),
       toggleStudio: () => setStudioMode(!studioMode),
       onlyBones: () => showOnly(['BONE_', 'JOINT_', 'LIGAMENT_']),
       onlyMuscles: () => showOnly(['MUSCLE_', 'TENDON_']),
@@ -490,16 +541,39 @@ export default function MembreSuperieur3DViewerV4({ modelUrl = DEFAULT_MODEL_URL
     };
   }, [modelUrl]);
 
+  useEffect(() => {
+    const handleFullScreenChange = () => {
+      setFullScreenOn(document.fullscreenElement === rootRef.current);
+      window.setTimeout(() => window.dispatchEvent(new Event('resize')), 80);
+    };
+    document.addEventListener('fullscreenchange', handleFullScreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullScreenChange);
+  }, []);
+
+  const toggleFullScreen = async () => {
+    const root = rootRef.current;
+    if (!root) return;
+    if (document.fullscreenElement === root) {
+      await document.exitFullscreen?.();
+    } else {
+      await root.requestFullscreen?.();
+    }
+  };
+
   return (
-    <div className="ms3d-root" style={{ minHeight: height }}>
+    <div ref={rootRef} className={`ms3d-root${fullScreenOn ? ' fullscreen' : ''}`} style={{ minHeight: height }}>
       <div className="ms3d-viewer" ref={viewerRef} style={{ minHeight: height }}>
         <div className="ms-html-labels" ref={labelLayerRef} />
         <div className="ms-focus-marker" ref={focusMarkerRef} />
         {loading && <div className="ms-loading">Chargement du modèle 3D…</div>}
         <div className="ms-top-tools">
+          <button className="primary" onClick={toggleFullScreen}>{fullScreenOn ? 'Quitter plein écran' : 'Plein écran'}</button>
           <button className="primary" onClick={() => apiRef.current.static?.()}>Modèle centré</button>
           <button className="primary" onClick={() => apiRef.current.blender?.()}>Vue Blender</button>
+          <button onClick={() => apiRef.current.zoomIn?.()}>Zoom +</button>
+          <button onClick={() => apiRef.current.zoomOut?.()}>Zoom -</button>
           <button onClick={() => apiRef.current.close?.()}>Zoom détail</button>
+          <button className="primary" onClick={() => apiRef.current.isolateSelected?.()}>Isoler sélection</button>
           <button onClick={() => apiRef.current.play?.()}>Lire</button>
           <button className="danger" onClick={() => apiRef.current.pause?.()}>Stop/Pause</button>
           <button className={labelsOn ? 'active' : ''} onClick={() => apiRef.current.toggleLabels?.()}>{labelsOn ? 'Noms ON' : 'Noms OFF'}</button>
@@ -517,12 +591,16 @@ export default function MembreSuperieur3DViewerV4({ modelUrl = DEFAULT_MODEL_URL
       <div className="ms-panel">
         <div className="ms-section-title">Contrôles</div>
         <div className="ms-grid">
+          <button className="primary full" onClick={toggleFullScreen}>{fullScreenOn ? 'Quitter le plein écran' : 'Ouvrir en plein écran'}</button>
+          <button onClick={() => apiRef.current.zoomIn?.()}>Zoom +</button>
+          <button onClick={() => apiRef.current.zoomOut?.()}>Zoom -</button>
           <button onClick={() => apiRef.current.play?.()}>Lire</button>
           <button className="danger" onClick={() => apiRef.current.pause?.()}>Stop</button>
           <button onClick={() => apiRef.current.restart?.()}>Recommencer</button>
           <button className="primary" onClick={() => apiRef.current.static?.()}>Vue étude</button>
           <button className="primary" onClick={() => apiRef.current.blender?.()}>Vue Blender</button>
           <button onClick={() => apiRef.current.close?.()}>Zoom détail</button>
+          <button className="primary full" onClick={() => apiRef.current.isolateSelected?.()}>Isoler la structure cliquée</button>
         </div>
         <input className="ms-timeline" ref={timelineRef} type="range" min="0" max="6" step="0.01" defaultValue="0" onInput={(e) => apiRef.current.scrub?.(e.currentTarget.value)} />
         <div className="ms-time">{time}</div>
@@ -553,6 +631,9 @@ export default function MembreSuperieur3DViewerV4({ modelUrl = DEFAULT_MODEL_URL
       </div>
       <style>{`
         .ms3d-root{display:grid;grid-template-columns:minmax(0,1fr)340px;gap:14px;width:100%;}
+        .ms3d-root.fullscreen{height:100vh;min-height:100vh!important;background:#f8fafc;padding:16px;box-sizing:border-box;grid-template-columns:minmax(0,1fr)360px;align-items:stretch}
+        .ms3d-root.fullscreen .ms3d-viewer{min-height:calc(100vh - 32px)!important}
+        .ms3d-root.fullscreen .ms-panel{max-height:calc(100vh - 32px)}
         .ms3d-viewer{position:relative;border:1px solid #e2e8f0;border-radius:18px;background:radial-gradient(circle at 50% 42%,rgba(14,165,233,.10),rgba(255,255,255,0) 48%),linear-gradient(180deg,#fff,#f8fafc);overflow:hidden;box-shadow:0 20px 60px rgba(15,23,42,.08)}
         .ms3d-viewer canvas{display:block;width:100%;height:100%;cursor:grab}.ms3d-viewer canvas:active{cursor:grabbing}
         .ms-loading{position:absolute;inset:0;display:grid;place-items:center;background:rgba(255,255,255,.7);color:#64748b;font-weight:800;z-index:8}
@@ -561,7 +642,7 @@ export default function MembreSuperieur3DViewerV4({ modelUrl = DEFAULT_MODEL_URL
         .ms-html-labels{position:absolute;inset:0;z-index:3;pointer-events:none}.ms-html-label{position:absolute;transform:translate(-50%,-50%);max-width:190px;padding:5px 8px;border-radius:10px;background:rgba(15,23,42,.88);color:white;font-size:14px;line-height:1.12;font-weight:900;text-align:center;box-shadow:0 8px 24px rgba(15,23,42,.22);border:1px solid rgba(255,255,255,.18)}
         .ms-focus-marker{position:absolute;width:26px;height:26px;display:none;z-index:7;pointer-events:none;border:2px solid #f59e0b;border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 28px rgba(245,158,11,.9),inset 0 0 10px rgba(245,158,11,.45)}.ms-focus-marker:before,.ms-focus-marker:after{content:"";position:absolute;background:#f59e0b;left:50%;top:50%;transform:translate(-50%,-50%)}.ms-focus-marker:before{width:38px;height:2px}.ms-focus-marker:after{width:2px;height:38px}
         .ms-panel{border:1px solid #e2e8f0;border-radius:18px;background:#fff;padding:16px;box-shadow:0 20px 60px rgba(15,23,42,.07);overflow:auto}.ms-section-title{color:#0891b2;font-size:12px;font-weight:950;text-transform:uppercase;letter-spacing:.06em;margin:0 0 10px}.ms-section-title.mt{margin-top:18px}.ms-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.ms-grid .full{grid-column:1/-1}.ms-timeline{width:100%;margin-top:12px;accent-color:#0891b2}.ms-time{color:#64748b;font-size:12px;margin-top:5px}.ms-description{margin-top:18px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:13px}.ms-description h3{margin:0 0 6px;color:#0f766e;font-size:16px}.ms-description p{margin:0;color:#334155;font-size:13px;line-height:1.55}.ms-tag{display:inline-block;margin:8px 6px 0 0;border-radius:999px;background:rgba(8,145,178,.12);color:#155e75;padding:4px 8px;font-size:11px;font-weight:900}
-        @media(max-width:1100px){.ms3d-root{grid-template-columns:1fr}.ms-panel{max-height:none}}@media(max-width:640px){.ms3d-viewer{border-radius:14px}.ms-html-label{font-size:12px;max-width:140px}.ms-top-tools button{font-size:11px;padding:7px 9px}}
+        @media(max-width:1100px){.ms3d-root,.ms3d-root.fullscreen{grid-template-columns:1fr}.ms-panel{max-height:none}.ms3d-root.fullscreen{overflow:auto}.ms3d-root.fullscreen .ms-panel{max-height:none}}@media(max-width:640px){.ms3d-viewer{border-radius:14px}.ms-html-label{font-size:12px;max-width:140px}.ms-top-tools button{font-size:11px;padding:7px 9px}}
       `}</style>
     </div>
   );
