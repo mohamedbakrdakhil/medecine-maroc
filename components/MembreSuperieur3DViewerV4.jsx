@@ -116,10 +116,10 @@ export default function MembreSuperieur3DViewerV4({ modelUrl = DEFAULT_MODEL_URL
     renderer.setSize(container.clientWidth, container.clientHeight);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.08;
+    renderer.toneMappingExposure = 1.2;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFShadowMap;
-    renderer.setClearColor(0xf8fafc, 1);
+    renderer.setClearColor(0x020617, 1);
     container.appendChild(renderer.domElement);
 
     const pmrem = new THREE.PMREMGenerator(renderer);
@@ -319,8 +319,8 @@ export default function MembreSuperieur3DViewerV4({ modelUrl = DEFAULT_MODEL_URL
     };
     const setStudioMode = (enabled) => {
       studioMode = enabled;
-      renderer.toneMappingExposure = enabled ? 1.08 : 0.92;
-      renderer.setClearColor(enabled ? 0xf8fafc : 0x0f172a, 1);
+      renderer.toneMappingExposure = enabled ? 1.2 : 1.02;
+      renderer.setClearColor(enabled ? 0x020617 : 0xf8fafc, 1);
       updateButtons();
     };
     const showAllLayers = (refit = true) => {
@@ -578,7 +578,7 @@ export default function MembreSuperieur3DViewerV4({ modelUrl = DEFAULT_MODEL_URL
           <button className="danger" onClick={() => apiRef.current.pause?.()}>Stop/Pause</button>
           <button className={labelsOn ? 'active' : ''} onClick={() => apiRef.current.toggleLabels?.()}>{labelsOn ? 'Noms ON' : 'Noms OFF'}</button>
           <button className={zoomOn ? 'active' : ''} onClick={() => apiRef.current.toggleZoom?.()}>{zoomOn ? 'Zoom curseur ON' : 'Zoom curseur OFF'}</button>
-          <button className={studioOn ? 'active' : ''} onClick={() => apiRef.current.toggleStudio?.()}>{studioOn ? 'Studio ON' : 'Studio OFF'}</button>
+          <button className={studioOn ? 'active' : ''} onClick={() => apiRef.current.toggleStudio?.()}>{studioOn ? 'Fond noir ON' : 'Fond noir OFF'}</button>
           <button className={focusOn ? 'active' : ''} onClick={() => apiRef.current.toggleFocus?.()}>{focusOn ? 'Verrou POI ON' : 'Verrou POI OFF'}</button>
           <button onClick={() => apiRef.current.reset?.()}>Reset vue</button>
         </div>
@@ -631,12 +631,12 @@ export default function MembreSuperieur3DViewerV4({ modelUrl = DEFAULT_MODEL_URL
       </div>
       <style>{`
         .ms3d-root{display:grid;grid-template-columns:minmax(0,1fr)340px;gap:14px;width:100%;}
-        .ms3d-root.fullscreen{height:100vh;min-height:100vh!important;background:#f8fafc;padding:16px;box-sizing:border-box;grid-template-columns:minmax(0,1fr)360px;align-items:stretch}
+        .ms3d-root.fullscreen{height:100vh;min-height:100vh!important;background:#020617;padding:16px;box-sizing:border-box;grid-template-columns:minmax(0,1fr)360px;align-items:stretch}
         .ms3d-root.fullscreen .ms3d-viewer{min-height:calc(100vh - 32px)!important}
         .ms3d-root.fullscreen .ms-panel{max-height:calc(100vh - 32px)}
-        .ms3d-viewer{position:relative;border:1px solid #e2e8f0;border-radius:18px;background:radial-gradient(circle at 50% 42%,rgba(14,165,233,.10),rgba(255,255,255,0) 48%),linear-gradient(180deg,#fff,#f8fafc);overflow:hidden;box-shadow:0 20px 60px rgba(15,23,42,.08)}
+        .ms3d-viewer{position:relative;border:1px solid rgba(148,163,184,.22);border-radius:18px;background:radial-gradient(circle at 50% 40%,rgba(14,165,233,.16),rgba(2,6,23,0) 48%),linear-gradient(180deg,#020617,#0f172a 56%,#020617);overflow:hidden;box-shadow:0 20px 70px rgba(2,6,23,.28)}
         .ms3d-viewer canvas{display:block;width:100%;height:100%;cursor:grab}.ms3d-viewer canvas:active{cursor:grabbing}
-        .ms-loading{position:absolute;inset:0;display:grid;place-items:center;background:rgba(255,255,255,.7);color:#64748b;font-weight:800;z-index:8}
+        .ms-loading{position:absolute;inset:0;display:grid;place-items:center;background:rgba(2,6,23,.72);color:#e2e8f0;font-weight:800;z-index:8}
         .ms-top-tools{position:absolute;left:12px;right:12px;top:12px;display:flex;flex-wrap:wrap;gap:8px;z-index:6;pointer-events:none}.ms-top-tools button,.ms-panel button{appearance:none;border:1px solid rgba(15,23,42,.08);border-radius:999px;background:rgba(255,255,255,.93);font-size:12px;font-weight:850;padding:8px 11px;cursor:pointer;box-shadow:0 6px 18px rgba(15,23,42,.07);pointer-events:auto}.ms-top-tools button:hover,.ms-panel button:hover{background:#ecfeff}.ms-top-tools .active,.ms-panel .active{background:#ccfbf1;color:#0f766e}.ms-top-tools .primary,.ms-panel .primary{background:#cffafe;color:#155e75}.ms-top-tools .danger,.ms-panel .danger{background:#fff1f2;color:#be123c}
         .ms-hud{position:absolute;right:14px;bottom:14px;max-width:min(340px,calc(100% - 28px));background:rgba(15,23,42,.82);color:white;border-radius:14px;padding:12px 14px;box-shadow:0 18px 54px rgba(15,23,42,.22);pointer-events:none}.ms-hud-title{font-size:15px;font-weight:950}.ms-hud-meta{margin-top:3px;color:#cbd5e1;font-size:11px}.ms-hud-hint{margin-top:7px;color:#67e8f9;font-size:11px;line-height:1.4}
         .ms-html-labels{position:absolute;inset:0;z-index:3;pointer-events:none}.ms-html-label{position:absolute;transform:translate(-50%,-50%);max-width:190px;padding:5px 8px;border-radius:10px;background:rgba(15,23,42,.88);color:white;font-size:14px;line-height:1.12;font-weight:900;text-align:center;box-shadow:0 8px 24px rgba(15,23,42,.22);border:1px solid rgba(255,255,255,.18)}
