@@ -14,9 +14,9 @@ import MembreSuperieur3DViewerV4 from '@/components/MembreSuperieur3DViewerV4'
 
 function ChapterContent({ chapter, gradient }: { chapter: Chapter; gradient: string }) {
   return (
-    <article className="max-w-3xl mx-auto px-4 sm:px-6 py-8 select-none">
+    <article className="max-w-6xl mx-auto px-4 sm:px-6 py-8 select-none">
       {/* Header */}
-      <div className="mb-8">
+      <div className="mb-8 max-w-3xl mx-auto">
         <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">{chapter.professor}</p>
         <h1 className="text-2xl font-bold text-gray-900 mb-6">{chapter.title}</h1>
 
@@ -35,7 +35,7 @@ function ChapterContent({ chapter, gradient }: { chapter: Chapter; gradient: str
       </div>
 
       {/* Sections */}
-      <div className="space-y-8">
+      <div className="space-y-8 max-w-3xl mx-auto">
         {chapter.sections.map((sec, i) => (
           <section key={i}>
             <h2 className="text-base font-bold text-teal-700 border-b border-teal-100 pb-2 mb-4">
@@ -114,7 +114,7 @@ function ChapterContent({ chapter, gradient }: { chapter: Chapter; gradient: str
       {chapter.model3D === 'thorax' && <Thorax3D/>}
 
       {chapter.sourcePages && chapter.sourcePages.length > 0 && (
-        <section className="mt-10">
+        <section className="mt-10 max-w-3xl mx-auto">
           <div className="border-t border-gray-100 pt-8 mb-5">
             <h2 className="text-base font-bold text-teal-700 mb-1">{chapter.sourcePagesTitle ?? 'Cours complet'}</h2>
             <p className="text-xs text-gray-400">

@@ -7,7 +7,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
 const DEFAULT_MODEL_URL = '/models/euromed/s1/anatomie/anatomie_membre_superieur_v2_premium.glb';
 const FPS = 24;
-const STATIC_FRAME = 96;
+const STATIC_FRAME = 52;
 const LABEL_MAX_COUNT = 28;
 
 const anatomicalPrefixes = ['BONE_', 'JOINT_', 'LIGAMENT_', 'MUSCLE_', 'TENDON_', 'NERVE_', 'ARTERY_', 'VEIN_', 'FLOW_', 'SKIN_', 'LABEL_'];
@@ -105,11 +105,11 @@ export default function MembreSuperieur3DViewerV4({ modelUrl = DEFAULT_MODEL_URL
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(42, container.clientWidth / container.clientHeight, 0.01, 1000);
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, preserveDrawingBuffer: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.setSize(container.clientWidth, container.clientHeight);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
-    renderer.setClearColor(0xffffff, 0);
+    renderer.setClearColor(0xf8fafc, 1);
     container.appendChild(renderer.domElement);
 
     const controls = new OrbitControls(camera, renderer.domElement);
@@ -174,7 +174,7 @@ export default function MembreSuperieur3DViewerV4({ modelUrl = DEFAULT_MODEL_URL
       const size = box.getSize(new THREE.Vector3());
       const maxDim = Math.max(size.x, size.y, size.z) || 1;
       model.position.sub(center);
-      model.scale.multiplyScalar(5.6 / maxDim);
+      model.scale.multiplyScalar(10.5 / maxDim);
       model.updateMatrixWorld(true);
     };
     const updateButtons = () => {
@@ -259,6 +259,18 @@ export default function MembreSuperieur3DViewerV4({ modelUrl = DEFAULT_MODEL_URL
     };
     const setVisibilityByPrefix = (prefixes, visible) => {
       model?.traverse((obj) => { if (obj.name && prefixes.some((p) => obj.name.startsWith(p))) obj.visible = visible; });
+    };
+    const prepareMeshesForStudyView = () => {
+      model?.traverse((obj) => {
+        if (!obj.isMesh) return;
+        obj.visible = true;
+        const materials = Array.isArray(obj.material) ? obj.material : [obj.material];
+        materials.filter(Boolean).forEach((material) => {
+          material.depthWrite = true;
+          material.side = THREE.DoubleSide;
+          material.needsUpdate = true;
+        });
+      });
     };
     const showAllLayers = (refit = true) => {
       model?.traverse((obj) => { if (obj.name && anatomicalPrefixes.some((p) => obj.name.startsWith(p))) obj.visible = true; });
@@ -374,7 +386,7 @@ export default function MembreSuperieur3DViewerV4({ modelUrl = DEFAULT_MODEL_URL
       if (destroyed) return;
       model = gltf.scene;
       scene.add(model);
-      model.traverse((obj) => { if (obj.isMesh && obj.material) { obj.material.depthWrite = true; obj.material.needsUpdate = true; } });
+      prepareMeshesForStudyView();
       mixer = new THREE.AnimationMixer(model);
       const actions = (gltf.animations || []).map((clip) => mixer.clipAction(clip));
       actions.forEach((action) => action.play());
@@ -383,8 +395,11 @@ export default function MembreSuperieur3DViewerV4({ modelUrl = DEFAULT_MODEL_URL
       normalizeModelOnce();
       setAnimationFrame(STATIC_FRAME);
       showAllLayers(false);
-      setVisibilityByPrefix(['LABEL_'], false);
+      setVisibilityByPrefix(['LABEL_', 'FLOW_'], false);
+      labelsVisible = false;
       buildHtmlLabels();
+      labelLayer.style.display = 'none';
+      updateButtons();
       fitCameraToModel();
       setLoading(false);
     }, undefined, (error) => {
