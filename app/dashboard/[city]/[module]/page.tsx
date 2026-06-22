@@ -25,6 +25,7 @@ function getEducationalVariant(moduleId: string): EducationalVariant {
 
 function ChapterContent({ chapter, moduleId }: { chapter: Chapter; moduleId: string }) {
   const educationalVariant = getEducationalVariant(moduleId)
+  const hasDedicated3D = Boolean(chapter.models3D?.length || chapter.model3D)
 
   return (
     <article className="max-w-6xl mx-auto px-4 sm:px-6 py-8 select-none">
@@ -33,7 +34,7 @@ function ChapterContent({ chapter, moduleId }: { chapter: Chapter; moduleId: str
         <h1 className="text-2xl font-bold text-gray-900">{chapter.title}</h1>
       </div>
 
-      <Educational3D variant={educationalVariant} title={chapter.title} />
+      {!hasDedicated3D && <Educational3D variant={educationalVariant} title={chapter.title} />}
 
       {chapter.models3D?.map((model) => (
         model.viewer === 'membre-superieur-v4' ? (

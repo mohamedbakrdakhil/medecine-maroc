@@ -30,10 +30,24 @@ const variantLabels: Record<Variant, string> = {
 function makeMaterial(color: string, opacity = 1) {
   return new THREE.MeshStandardMaterial({
     color,
-    roughness: 0.45,
-    metalness: 0.04,
+    roughness: 0.32,
+    metalness: 0.08,
     transparent: opacity < 1,
     opacity,
+  })
+}
+
+function makeGlass(color: string, opacity = 0.22) {
+  return new THREE.MeshPhysicalMaterial({
+    color,
+    roughness: 0.18,
+    metalness: 0.02,
+    transmission: 0.28,
+    thickness: 0.75,
+    transparent: true,
+    opacity,
+    clearcoat: 0.65,
+    clearcoatRoughness: 0.18,
   })
 }
 
@@ -56,6 +70,15 @@ function addConnection(group: THREE.Group, from: THREE.Vector3, to: THREE.Vector
   mesh.position.copy(from).add(direction.multiplyScalar(0.5))
   mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), to.clone().sub(from).normalize())
   group.add(mesh)
+}
+
+function addCapsule(group: THREE.Group, parts: PartSpec[], name: string, layer: string, color: string, position: [number, number, number], scale: [number, number, number], rotation: [number, number, number] = [0, 0, 0]) {
+  const mesh = new THREE.Mesh(new THREE.CapsuleGeometry(0.13, 0.55, 12, 28), makeMaterial(color))
+  mesh.position.set(...position)
+  mesh.scale.set(...scale)
+  mesh.rotation.set(...rotation)
+  addPart(group, parts, name, layer, color, mesh)
+  return mesh
 }
 
 function buildAnatomy(group: THREE.Group, parts: PartSpec[]) {
@@ -93,20 +116,33 @@ function buildAnatomy(group: THREE.Group, parts: PartSpec[]) {
 }
 
 function buildBiology(group: THREE.Group, parts: PartSpec[]) {
-  const membrane = new THREE.Mesh(new THREE.SphereGeometry(1.35, 64, 40), makeMaterial('#22d3ee', 0.18))
-  membrane.scale.set(1.25, 0.9, 0.72)
+  const membrane = new THREE.Mesh(new THREE.SphereGeometry(1.35, 96, 64), makeGlass('#22d3ee', 0.16))
+  membrane.scale.set(1.28, 0.92, 0.72)
   addPart(group, parts, 'Membrane cellulaire', 'Cellule', '#22d3ee', membrane)
 
-  const nucleus = new THREE.Mesh(new THREE.SphereGeometry(0.48, 48, 32), makeMaterial('#a78bfa', 0.72))
-  nucleus.position.set(-0.18, 0.05, 0.08)
+  const cytoplasm = new THREE.Mesh(new THREE.SphereGeometry(1.18, 72, 42), makeMaterial('#0f766e', 0.12))
+  cytoplasm.scale.set(1.18, 0.78, 0.58)
+  addPart(group, parts, 'Cytoplasme', 'Cellule', '#0f766e', cytoplasm)
+
+  const nucleus = new THREE.Mesh(new THREE.SphereGeometry(0.42, 64, 40), makeGlass('#a78bfa', 0.52))
+  nucleus.position.set(-0.22, 0.05, 0.12)
   addPart(group, parts, 'Noyau', 'Genetique', '#a78bfa', nucleus)
 
-  for (let i = 0; i < 9; i += 1) {
-    const angle = i * 0.78
-    const ribosome = new THREE.Mesh(new THREE.SphereGeometry(0.08, 20, 16), makeMaterial(i % 2 ? '#f97316' : '#facc15'))
-    ribosome.position.set(Math.cos(angle) * 0.9, Math.sin(angle * 1.4) * 0.42, Math.sin(angle) * 0.42)
-    addPart(group, parts, `Organite ${i + 1}`, 'Cytoplasme', i % 2 ? '#f97316' : '#facc15', ribosome)
+  const nucleolus = new THREE.Mesh(new THREE.SphereGeometry(0.13, 36, 24), makeMaterial('#c084fc'))
+  nucleolus.position.set(-0.3, 0.09, 0.27)
+  addPart(group, parts, 'Nucleole', 'Genetique', '#c084fc', nucleolus)
+
+  for (let i = 0; i < 18; i += 1) {
+    const angle = i * 0.72
+    const ribosome = new THREE.Mesh(new THREE.SphereGeometry(0.045, 20, 16), makeMaterial(i % 2 ? '#f97316' : '#facc15'))
+    ribosome.position.set(Math.cos(angle) * 1.0, Math.sin(angle * 1.4) * 0.48, Math.sin(angle) * 0.46)
+    addPart(group, parts, `Ribosome ${i + 1}`, 'Ribosomes', i % 2 ? '#f97316' : '#facc15', ribosome)
   }
+
+  addCapsule(group, parts, 'Mitochondrie 1', 'Organites', '#fb7185', [0.62, -0.34, -0.12], [1, 0.72, 0.62], [0.9, 0.2, 1.1])
+  addCapsule(group, parts, 'Mitochondrie 2', 'Organites', '#fb7185', [-0.82, -0.22, -0.1], [0.82, 0.58, 0.5], [1.1, -0.4, -0.75])
+  addCapsule(group, parts, 'Appareil de Golgi', 'Organites', '#38bdf8', [0.52, 0.32, 0.08], [1.05, 0.26, 0.34], [0.7, 0, 0.65])
+  addCapsule(group, parts, 'Reticulum endoplasmique', 'Organites', '#2dd4bf', [-0.62, 0.26, -0.16], [1.2, 0.22, 0.42], [0.9, 0.6, -0.28])
 
   const dnaGroup = new THREE.Group()
   const a = '#60a5fa'
@@ -161,18 +197,29 @@ function buildChemistry(group: THREE.Group, parts: PartSpec[]) {
   const ring = new THREE.Mesh(new THREE.TorusGeometry(1.15, 0.018, 10, 96), makeMaterial('#14b8a6', 0.55))
   ring.rotation.x = Math.PI * 0.5
   addPart(group, parts, 'Environnement biochimique', 'Structure', '#14b8a6', ring)
+
+  for (let i = 0; i < 7; i += 1) {
+    const angle = (i / 7) * Math.PI * 2
+    const bead = new THREE.Mesh(new THREE.SphereGeometry(0.11, 28, 20), makeMaterial(i % 2 ? '#06b6d4' : '#8b5cf6'))
+    bead.position.set(Math.cos(angle) * 0.75, -0.75 + i * 0.08, Math.sin(angle) * 0.34)
+    addPart(group, parts, `Residus peptidique ${i + 1}`, 'Proteine', i % 2 ? '#06b6d4' : '#8b5cf6', bead)
+  }
 }
 
 function buildMethodology(group: THREE.Group, parts: PartSpec[]) {
+  const brain = new THREE.Mesh(new THREE.SphereGeometry(0.82, 64, 36), makeGlass('#f0abfc', 0.24))
+  brain.scale.set(1.26, 0.82, 0.66)
+  addPart(group, parts, 'Cerveau schematique', 'Memoire', '#f0abfc', brain)
+
   const colors = ['#22d3ee', '#a78bfa', '#f472b6', '#facc15', '#34d399', '#fb7185']
   const nodes: THREE.Vector3[] = []
-  for (let i = 0; i < 11; i += 1) {
+  for (let i = 0; i < 15; i += 1) {
     const angle = i * 0.9
     const radius = i === 0 ? 0 : 0.58 + (i % 3) * 0.22
     const node = new THREE.Mesh(new THREE.SphereGeometry(i === 0 ? 0.22 : 0.12, 32, 20), makeMaterial(colors[i % colors.length]))
     node.position.set(Math.cos(angle) * radius, Math.sin(i * 1.7) * 0.38, Math.sin(angle) * radius)
     nodes.push(node.position.clone())
-    addPart(group, parts, i === 0 ? 'Memoire centrale' : `Notion ${i}`, 'Carte mentale', colors[i % colors.length], node)
+    addPart(group, parts, i === 0 ? 'Memoire centrale' : `Synapse ${i}`, 'Reseau neuronal', colors[i % colors.length], node)
   }
   for (let i = 1; i < nodes.length; i += 1) addConnection(group, nodes[0], nodes[i], '#64748b')
   for (let i = 1; i < nodes.length - 1; i += 2) addConnection(group, nodes[i], nodes[i + 1], '#475569')
@@ -198,6 +245,11 @@ function buildPublicHealth(group: THREE.Group, parts: PartSpec[]) {
   const curve = new THREE.CatmullRomCurve3(curvePoints)
   const trend = new THREE.Mesh(new THREE.TubeGeometry(curve, 64, 0.03, 12), makeMaterial('#facc15'))
   addPart(group, parts, 'Courbe epidemiologique', 'Statistiques', '#facc15', trend)
+
+  const map = new THREE.Mesh(new THREE.CircleGeometry(1.35, 72), makeMaterial('#064e3b', 0.26))
+  map.rotation.x = -Math.PI * 0.5
+  map.position.y = -0.72
+  addPart(group, parts, 'Territoire sanitaire', 'Carte', '#064e3b', map)
 }
 
 function buildScene(variant: Variant, root: THREE.Group, parts: PartSpec[]) {
@@ -217,18 +269,28 @@ export default function Educational3D({ variant, title }: Educational3DProps) {
     reset: () => void
     isolate: () => void
     showAll: () => void
+    filterLayer: (layer: string) => void
+    toggleLabels: () => void
   } | null>(null)
   const [selected, setSelected] = useState('Clique sur une piece 3D')
   const [layer, setLayer] = useState(variantLabels[variant])
+  const [layers, setLayers] = useState<string[]>([])
+  const [activeLayer, setActiveLayer] = useState('Toutes')
+  const [labelsOn, setLabelsOn] = useState(true)
   const [explode, setExplode] = useState(0.35)
   const [fullscreen, setFullscreen] = useState(false)
   const explodeRef = useRef(explode)
+  const labelsOnRef = useRef(labelsOn)
 
   const heading = useMemo(() => variantLabels[variant], [variant])
 
   useEffect(() => {
     explodeRef.current = explode
   }, [explode])
+
+  useEffect(() => {
+    labelsOnRef.current = labelsOn
+  }, [labelsOn])
 
   useEffect(() => {
     const mount = mountRef.current
@@ -273,11 +335,41 @@ export default function Educational3D({ variant, title }: Educational3DProps) {
     scene.add(root)
     const parts: PartSpec[] = []
     buildScene(variant, root, parts)
+    setLayers(Array.from(new Set(parts.map((part) => part.layer))))
 
     const selectable = parts.map((part) => part.mesh)
+    const labelSprites: THREE.Sprite[] = []
     let selectedMesh: THREE.Mesh | null = null
     let isolated = false
     let targetExplode = explodeRef.current
+
+    parts.forEach((part) => {
+      const canvas = document.createElement('canvas')
+      canvas.width = 512
+      canvas.height = 128
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return
+      ctx.fillStyle = 'rgba(2,6,23,0.72)'
+      ctx.strokeStyle = 'rgba(45,212,191,0.5)'
+      ctx.lineWidth = 3
+      ctx.beginPath()
+      ctx.roundRect(18, 26, 476, 76, 22)
+      ctx.fill()
+      ctx.stroke()
+      ctx.fillStyle = '#ffffff'
+      ctx.font = '600 30px Arial'
+      ctx.textBaseline = 'middle'
+      ctx.fillText(part.name.slice(0, 26), 42, 66)
+      const texture = new THREE.CanvasTexture(canvas)
+      texture.colorSpace = THREE.SRGBColorSpace
+      const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false }))
+      const home = part.mesh.userData.home as THREE.Vector3
+      sprite.position.copy(home).add(new THREE.Vector3(0, 0.22, 0))
+      sprite.scale.set(0.62, 0.16, 1)
+      sprite.userData.layer = part.layer
+      labelSprites.push(sprite)
+      root.add(sprite)
+    })
 
     const box = new THREE.Box3().setFromObject(root)
     const center = new THREE.Vector3()
@@ -337,15 +429,42 @@ export default function Educational3D({ variant, title }: Educational3DProps) {
       },
       isolate: () => {
         if (!selectedMesh) return
+        const isolatedMesh = selectedMesh
+        const isolatedHome = isolatedMesh.userData.home as THREE.Vector3 | undefined
         isolated = true
         selectable.forEach((mesh) => {
-          mesh.visible = mesh === selectedMesh || Boolean(selectedMesh?.children.includes(mesh))
+          mesh.visible = mesh === isolatedMesh || Boolean(isolatedMesh.children.includes(mesh))
+        })
+        labelSprites.forEach((sprite) => {
+          sprite.visible = Boolean(isolatedHome) && sprite.position.distanceTo(isolatedHome ?? isolatedMesh.position) < 0.4
         })
       },
       showAll: () => {
         isolated = false
+        setActiveLayer('Toutes')
         selectable.forEach((mesh) => {
           mesh.visible = true
+        })
+        labelSprites.forEach((sprite) => {
+          sprite.visible = labelsOnRef.current
+        })
+      },
+      filterLayer: (targetLayer: string) => {
+        isolated = false
+        setActiveLayer(targetLayer)
+        selectable.forEach((mesh) => {
+          mesh.visible = targetLayer === 'Toutes' || mesh.userData.layer === targetLayer
+        })
+        labelSprites.forEach((sprite) => {
+          sprite.visible = labelsOnRef.current && (targetLayer === 'Toutes' || sprite.userData.layer === targetLayer)
+        })
+      },
+      toggleLabels: () => {
+        setLabelsOn((current) => {
+          labelSprites.forEach((sprite) => {
+            sprite.visible = !current
+          })
+          return !current
         })
       },
     }
@@ -365,9 +484,12 @@ export default function Educational3D({ variant, title }: Educational3DProps) {
         const home = part.mesh.userData.home as THREE.Vector3 | undefined
         const exploded = part.mesh.userData.exploded as THREE.Vector3 | undefined
         if (home && exploded) part.mesh.position.lerpVectors(home, exploded, targetExplode)
-        part.mesh.rotation.y += dt * (0.18 + (index % 3) * 0.03)
+        part.mesh.rotation.y += dt * (0.06 + (index % 3) * 0.012)
       })
-      root.rotation.y += dt * 0.08
+      labelSprites.forEach((sprite) => {
+        sprite.quaternion.copy(camera.quaternion)
+      })
+      root.rotation.y += dt * 0.025
       if (!isolated) controls.update()
       renderer.render(scene, camera)
     }
@@ -385,6 +507,9 @@ export default function Educational3D({ variant, title }: Educational3DProps) {
           object.geometry.dispose()
           const materials = Array.isArray(object.material) ? object.material : [object.material]
           materials.forEach((material) => material.dispose())
+        } else if (object instanceof THREE.Sprite) {
+          object.material.map?.dispose()
+          object.material.dispose()
         }
       })
       renderer.dispose()
@@ -396,7 +521,7 @@ export default function Educational3D({ variant, title }: Educational3DProps) {
     <section className="mt-10 border-t border-gray-100 pt-8">
       <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-teal-600">3D interactif</p>
+          <p className="text-xs font-semibold uppercase tracking-widest text-teal-600">3D premium interactif</p>
           <h2 className="text-base font-bold text-gray-900">{heading}</h2>
           <p className="text-xs text-gray-400">{title}</p>
         </div>
@@ -404,6 +529,7 @@ export default function Educational3D({ variant, title }: Educational3DProps) {
           <button type="button" onClick={() => apiRef.current?.zoomOut()} className="rounded-md border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-50">-</button>
           <button type="button" onClick={() => apiRef.current?.zoomIn()} className="rounded-md border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-50">+</button>
           <button type="button" onClick={() => apiRef.current?.reset()} className="rounded-md border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-50">Reset</button>
+          <button type="button" onClick={() => apiRef.current?.toggleLabels()} className="rounded-md border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-50">Labels</button>
           <button type="button" onClick={() => rootRef.current?.requestFullscreen()} className="rounded-md bg-gray-900 px-3 py-2 text-xs font-semibold text-white hover:bg-black">Plein ecran</button>
         </div>
       </div>
@@ -417,7 +543,7 @@ export default function Educational3D({ variant, title }: Educational3DProps) {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <label className="flex items-center gap-2 text-xs text-gray-300">
-              Assemblage
+              Slow assembly
               <input
                 type="range"
                 min="0"
@@ -431,6 +557,22 @@ export default function Educational3D({ variant, title }: Educational3DProps) {
             <button type="button" onClick={() => apiRef.current?.isolate()} className="rounded-md border border-white/15 px-3 py-2 text-xs font-semibold text-white hover:bg-white/10">Isoler</button>
             <button type="button" onClick={() => apiRef.current?.showAll()} className="rounded-md border border-white/15 px-3 py-2 text-xs font-semibold text-white hover:bg-white/10">Tout afficher</button>
           </div>
+        </div>
+        <div className="flex flex-wrap gap-2 border-t border-white/10 bg-gray-950 px-4 pb-4">
+          {['Toutes', ...layers].map((item) => (
+            <button
+              key={item}
+              type="button"
+              onClick={() => apiRef.current?.filterLayer(item)}
+              className={`rounded-md border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                activeLayer === item
+                  ? 'border-teal-300 bg-teal-400 text-gray-950'
+                  : 'border-white/15 text-white hover:bg-white/10'
+              }`}
+            >
+              {item}
+            </button>
+          ))}
         </div>
       </div>
 
