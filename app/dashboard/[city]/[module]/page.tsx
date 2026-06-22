@@ -11,14 +11,28 @@ import type { Chapter } from '@/lib/content/types'
 import Thorax3D from '@/components/Thorax3D'
 import GLBModelViewer from '@/components/GLBModelViewer'
 import MembreSuperieur3DViewerV4 from '@/components/MembreSuperieur3DViewerV4'
+import PremiumModule3D, { type PremiumModule3DVariant } from '@/components/PremiumModule3D'
 
-function ChapterContent({ chapter }: { chapter: Chapter }) {
+function getPremiumVariant(moduleId: string): PremiumModule3DVariant | null {
+  if (moduleId.startsWith('biologie')) return 'biology'
+  if (moduleId.startsWith('chimie')) return 'chemistry'
+  if (moduleId.startsWith('methodologie')) return 'methodology'
+  if (moduleId.startsWith('sante-publique')) return 'public-health'
+  return null
+}
+
+function ChapterContent({ chapter, moduleId }: { chapter: Chapter; moduleId: string }) {
+  const premiumVariant = getPremiumVariant(moduleId)
+  const hasDedicated3D = Boolean(chapter.models3D?.length || chapter.model3D)
+
   return (
     <article className="max-w-6xl mx-auto px-4 sm:px-6 py-8 select-none">
       <div className="mb-8 max-w-3xl mx-auto">
         <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">{chapter.professor}</p>
         <h1 className="text-2xl font-bold text-gray-900">{chapter.title}</h1>
       </div>
+
+      {premiumVariant && !hasDedicated3D && <PremiumModule3D variant={premiumVariant} title={chapter.title} />}
 
       {chapter.models3D?.map((model) => (
         model.viewer === 'membre-superieur-v4' ? (
@@ -224,7 +238,7 @@ export default function ModulePage() {
           {/* Content area */}
           <div className="flex-1 overflow-y-auto bg-white">
             {activeChapter ? (
-              <ChapterContent chapter={activeChapter}/>
+              <ChapterContent chapter={activeChapter} moduleId={moduleId}/>
             ) : (
               <div className="flex items-center justify-center h-full text-gray-400 text-sm">
                 Sélectionne un support
