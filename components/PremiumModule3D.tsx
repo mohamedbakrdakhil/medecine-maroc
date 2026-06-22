@@ -5,7 +5,7 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
 
-export type PremiumModule3DVariant = 'anatomy' | 'biology' | 'chemistry' | 'biophysics' | 'histology' | 'methodology' | 'public-health'
+export type PremiumModule3DVariant = 'anatomy' | 'biology' | 'chemistry' | 'biophysics' | 'histology' | 'methodology' | 'psycho-socio' | 'public-health'
 
 type PremiumModule3DProps = {
   variant: PremiumModule3DVariant
@@ -29,6 +29,7 @@ const variantTitle: Record<PremiumModule3DVariant, string> = {
   biophysics: 'Biophysique 3D',
   histology: 'Histologie et embryologie 3D',
   methodology: 'Memoire et apprentissage 3D',
+  'psycho-socio': 'Neuro-psycho-sociologie medicale 3D',
   'public-health': 'Sante publique 3D',
 }
 
@@ -39,16 +40,17 @@ const variantIntro: Record<PremiumModule3DVariant, string> = {
   biophysics: 'Compartiments, membrane, flux, circulation, rayons et optique.',
   histology: 'Epithelium, tissu osseux, muscle, neurone et developpement embryonnaire.',
   methodology: 'Cerveau, hippocampe, cortex et reseaux neuronaux de memorisation.',
+  'psycho-socio': 'Cerveau, reseaux emotionnels, relation soignant-patient et dynamique sociale.',
   'public-health': 'Population, foyers, hopitaux, diffusion et indicateurs epidemiologiques.',
 }
 
 function mat(color: string, options: THREE.MeshPhysicalMaterialParameters = {}) {
   return new THREE.MeshPhysicalMaterial({
     color,
-    roughness: 0.34,
+    roughness: 0.29,
     metalness: 0.04,
-    clearcoat: 0.38,
-    clearcoatRoughness: 0.24,
+    clearcoat: 0.48,
+    clearcoatRoughness: 0.18,
     ...options,
   })
 }
@@ -88,6 +90,43 @@ function tubeBetween(from: THREE.Vector3, to: THREE.Vector3, radius: number, col
   mesh.position.copy(from).add(direction.multiplyScalar(0.5))
   mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), to.clone().sub(from).normalize())
   return mesh
+}
+
+function sphere(radius: number, color: string, position: [number, number, number], scale: [number, number, number] = [1, 1, 1], options: THREE.MeshPhysicalMaterialParameters = {}) {
+  const mesh = new THREE.Mesh(new THREE.SphereGeometry(radius, 64, 42), mat(color, options))
+  mesh.position.set(...position)
+  mesh.scale.set(...scale)
+  return mesh
+}
+
+function softEllipsoid(color: string, position: [number, number, number], scale: [number, number, number], opacity = 1) {
+  const mesh = new THREE.Mesh(
+    new THREE.SphereGeometry(0.5, 80, 48),
+    opacity < 1 ? glass(color, opacity) : mat(color, { roughness: 0.38, clearcoat: 0.28 }),
+  )
+  mesh.position.set(...position)
+  mesh.scale.set(...scale)
+  return mesh
+}
+
+function addPebbleTexture(group: THREE.Group, color: string, count: number, radius: number, spread: [number, number, number]) {
+  for (let i = 0; i < count; i += 1) {
+    const a = i * 2.399
+    const r = radius * (0.25 + (i % 9) / 12)
+    const dot = new THREE.Mesh(new THREE.SphereGeometry(0.018 + (i % 4) * 0.004, 12, 8), mat(color, { roughness: 0.55 }))
+    dot.position.set(Math.cos(a) * r * spread[0], Math.sin(i * 1.7) * spread[1], Math.sin(a) * r * spread[2])
+    group.add(dot)
+  }
+}
+
+function addPulseArc(group: THREE.Group, points: THREE.Vector3[], color: string, radius = 0.015) {
+  const curve = new THREE.CatmullRomCurve3(points)
+  const tube = new THREE.Mesh(
+    new THREE.TubeGeometry(curve, 80, radius, 14),
+    mat(color, { roughness: 0.18, emissive: new THREE.Color(color), emissiveIntensity: 0.14 }),
+  )
+  group.add(tube)
+  return tube
 }
 
 function makeTextSprite(text: string, color = '#67e8f9') {
@@ -259,124 +298,277 @@ function addChemistry(parts: Part[], root: THREE.Group) {
 }
 
 function addAnatomy(parts: Part[], root: THREE.Group) {
-  const abdomen = new THREE.Group()
-  const trunk = new THREE.Mesh(new THREE.CapsuleGeometry(0.55, 1.1, 24, 48), glass('#f8b4a2', 0.36))
-  trunk.scale.set(1.05, 1.0, 0.62)
-  trunk.position.set(0, 0.55, 0)
-  abdomen.add(trunk)
-  const bowel = new THREE.Mesh(new THREE.TorusKnotGeometry(0.34, 0.055, 130, 14, 3, 4), mat('#fca5a5'))
-  bowel.position.set(0, 0.3, 0.25)
-  abdomen.add(bowel)
-  const liver = new THREE.Mesh(new THREE.SphereGeometry(0.25, 42, 24), mat('#7f1d1d'))
-  liver.scale.set(1.45, 0.58, 0.72)
-  liver.position.set(0.28, 0.75, 0.22)
-  abdomen.add(liver)
-  addPart(parts, root, 'abdomen', 'Abdomen et visceres', 'Abdomen', abdomen)
+  const abdominalWall = new THREE.Group()
+  abdominalWall.add(softEllipsoid('#f8b4a2', [0, 0.55, 0], [1.25, 1.55, 0.72], 0.18))
+  abdominalWall.add(softEllipsoid('#fecaca', [0, 0.72, 0.02], [0.92, 0.84, 0.5], 0.12))
+  for (let i = 0; i < 9; i += 1) {
+    const rib = new THREE.Mesh(new THREE.TorusGeometry(0.46 + i * 0.025, 0.011, 10, 72), mat('#e8d2aa', { roughness: 0.5 }))
+    rib.position.set(0, 1.25 - i * 0.075, -0.03)
+    rib.scale.set(1.45, 0.28, 0.7)
+    rib.rotation.x = Math.PI * 0.5
+    abdominalWall.add(rib)
+  }
+  addPart(parts, root, 'abdominal-wall', 'Paroi abdominale translucide', 'Abdomen', abdominalWall)
+
+  const viscera = new THREE.Group()
+  const liver = softEllipsoid('#7f1d1d', [0.3, 0.88, 0.24], [0.88, 0.34, 0.46])
+  const stomach = softEllipsoid('#f59e0b', [-0.28, 0.68, 0.26], [0.38, 0.46, 0.26])
+  const spleen = softEllipsoid('#9333ea', [-0.64, 0.74, 0.15], [0.22, 0.32, 0.18])
+  const pancreas = new THREE.Mesh(new THREE.CapsuleGeometry(0.07, 0.62, 14, 36), mat('#fde68a', { roughness: 0.42 }))
+  pancreas.position.set(-0.02, 0.55, 0.34)
+  pancreas.rotation.z = Math.PI * 0.5
+  const bowelCurve = new THREE.CatmullRomCurve3([
+    new THREE.Vector3(-0.38, 0.23, 0.3),
+    new THREE.Vector3(0.15, 0.45, 0.36),
+    new THREE.Vector3(0.42, 0.16, 0.3),
+    new THREE.Vector3(0.12, -0.1, 0.34),
+    new THREE.Vector3(-0.42, 0.02, 0.28),
+    new THREE.Vector3(-0.18, 0.28, 0.36),
+  ])
+  const bowel = new THREE.Mesh(new THREE.TubeGeometry(bowelCurve, 160, 0.065, 18), mat('#fca5a5', { roughness: 0.38 }))
+  viscera.add(liver, stomach, spleen, pancreas, bowel)
+  addPebbleTexture(viscera, '#fecdd3', 38, 0.7, [0.9, 0.42, 0.5])
+  addPart(parts, root, 'abdominal-viscera', 'Foie estomac pancreas intestin', 'Visceres', viscera)
+
+  const urogenital = new THREE.Group()
+  urogenital.add(softEllipsoid('#a16207', [-0.46, 0.34, -0.18], [0.22, 0.36, 0.15]))
+  urogenital.add(softEllipsoid('#a16207', [0.46, 0.34, -0.18], [0.22, 0.36, 0.15]))
+  urogenital.add(tubeBetween(new THREE.Vector3(-0.42, 0.12, -0.1), new THREE.Vector3(-0.16, -0.38, 0.05), 0.012, '#fde68a'))
+  urogenital.add(tubeBetween(new THREE.Vector3(0.42, 0.12, -0.1), new THREE.Vector3(0.16, -0.38, 0.05), 0.012, '#fde68a'))
+  urogenital.add(softEllipsoid('#fbbf24', [0, -0.5, 0.08], [0.34, 0.22, 0.22], 0.45))
+  addPart(parts, root, 'urogenital', 'Reins ureteres vessie', 'Retroperitoine', urogenital)
 
   const pelvis = new THREE.Group()
-  pelvis.position.set(0, -0.32, 0)
-  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.48, 0.055, 20, 80), mat('#d8b384'))
-  ring.scale.set(1.15, 0.62, 0.52)
-  ring.rotation.x = Math.PI * 0.5
-  pelvis.add(ring)
-  const sacrum = new THREE.Mesh(new THREE.CapsuleGeometry(0.11, 0.44, 10, 28), mat('#c89a62'))
-  sacrum.position.set(0, 0.02, -0.28)
+  pelvis.position.set(0, -0.42, 0)
+  for (const side of [-1, 1] as const) {
+    const iliac = new THREE.Mesh(new THREE.TorusGeometry(0.34, 0.055, 18, 80), mat('#d8b384', { roughness: 0.48 }))
+    iliac.position.set(side * 0.34, 0.05, 0)
+    iliac.scale.set(1.05, 0.62, 0.5)
+    iliac.rotation.set(Math.PI * 0.55, 0.12 * side, 0.24 * side)
+    pelvis.add(iliac)
+    pelvis.add(tubeBetween(new THREE.Vector3(side * 0.16, -0.02, -0.08), new THREE.Vector3(side * 0.52, -0.18, 0.02), 0.045, '#d8b384'))
+  }
+  const sacrum = new THREE.Mesh(new THREE.CapsuleGeometry(0.14, 0.48, 12, 30), mat('#c89a62', { roughness: 0.5 }))
+  sacrum.position.set(0, 0.06, -0.32)
   pelvis.add(sacrum)
-  addPart(parts, root, 'pelvis', 'Bassin osseux', 'Squelette', pelvis)
+  addPart(parts, root, 'pelvis', 'Bassin osseux et sacrum', 'Squelette', pelvis)
+
+  const vertebral = new THREE.Group()
+  vertebral.position.set(0, 0.26, -0.4)
+  for (let i = 0; i < 11; i += 1) {
+    const vertebra = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.07, 0.1), mat('#e8d2aa', { roughness: 0.5 }))
+    vertebra.position.set(0, i * 0.12 - 0.48, 0)
+    vertebra.rotation.y = (i % 2 ? 0.08 : -0.08)
+    vertebral.add(vertebra)
+  }
+  addPart(parts, root, 'spine', 'Rachis lombaire et thoracique', 'Squelette', vertebral)
 
   for (const side of [-1, 1] as const) {
     const limb = new THREE.Group()
-    limb.position.set(side * 0.36, -1.04, 0)
-    const femur = tubeBetween(new THREE.Vector3(0, 0.46, 0), new THREE.Vector3(side * 0.08, -0.35, 0), 0.045, '#d8b384')
-    const tibia = tubeBetween(new THREE.Vector3(side * 0.08, -0.42, 0), new THREE.Vector3(side * 0.04, -1.12, 0.02), 0.035, '#d8b384')
-    const fibula = tubeBetween(new THREE.Vector3(side * 0.18, -0.44, -0.04), new THREE.Vector3(side * 0.15, -1.1, -0.04), 0.02, '#c89a62')
-    const foot = new THREE.Mesh(new THREE.CapsuleGeometry(0.09, 0.45, 10, 28), mat('#d8b384'))
-    foot.position.set(side * 0.08, -1.28, 0.18)
+    limb.position.set(side * 0.36, -1.1, 0.02)
+    limb.add(tubeBetween(new THREE.Vector3(0, 0.52, 0), new THREE.Vector3(side * 0.08, -0.35, 0.02), 0.05, '#d8b384'))
+    limb.add(tubeBetween(new THREE.Vector3(side * 0.08, -0.42, 0.02), new THREE.Vector3(side * 0.04, -1.12, 0.04), 0.038, '#d8b384'))
+    limb.add(tubeBetween(new THREE.Vector3(side * 0.18, -0.44, -0.04), new THREE.Vector3(side * 0.15, -1.1, -0.03), 0.023, '#c89a62'))
+    limb.add(sphere(0.08, '#e8d2aa', [side * 0.08, -0.38, 0.03]))
+    limb.add(sphere(0.07, '#e8d2aa', [side * 0.04, -1.1, 0.04]))
+    const foot = new THREE.Mesh(new THREE.CapsuleGeometry(0.08, 0.42, 10, 28), mat('#d8b384', { roughness: 0.5 }))
+    foot.position.set(side * 0.1, -1.3, 0.22)
     foot.rotation.x = Math.PI * 0.5
-    limb.add(femur, tibia, fibula, foot)
+    limb.add(foot)
     addPart(parts, root, side === -1 ? 'left-lower-limb' : 'right-lower-limb', side === -1 ? 'Membre inferieur gauche' : 'Membre inferieur droit', 'Membre inferieur', limb)
   }
 
   const vessels = new THREE.Group()
-  vessels.position.set(0, -0.16, 0.32)
-  vessels.add(tubeBetween(new THREE.Vector3(0, 0.78, 0), new THREE.Vector3(0, -0.55, 0), 0.025, '#dc2626'))
-  vessels.add(tubeBetween(new THREE.Vector3(0, -0.25, 0), new THREE.Vector3(-0.42, -0.78, 0), 0.018, '#dc2626'))
-  vessels.add(tubeBetween(new THREE.Vector3(0, -0.25, 0), new THREE.Vector3(0.42, -0.78, 0), 0.018, '#dc2626'))
-  addPart(parts, root, 'vessels', 'Axe aorto-iliaque', 'Vaisseaux', vessels)
+  vessels.position.set(0, -0.08, 0.38)
+  vessels.add(tubeBetween(new THREE.Vector3(0, 0.9, 0), new THREE.Vector3(0, -0.52, 0), 0.024, '#dc2626'))
+  vessels.add(tubeBetween(new THREE.Vector3(-0.12, 0.86, -0.04), new THREE.Vector3(-0.12, -0.52, -0.04), 0.021, '#2563eb'))
+  vessels.add(tubeBetween(new THREE.Vector3(0, -0.28, 0), new THREE.Vector3(-0.44, -0.84, 0.04), 0.017, '#dc2626'))
+  vessels.add(tubeBetween(new THREE.Vector3(0, -0.28, 0), new THREE.Vector3(0.44, -0.84, 0.04), 0.017, '#dc2626'))
+  vessels.add(tubeBetween(new THREE.Vector3(-0.12, -0.3, -0.04), new THREE.Vector3(-0.5, -0.86, -0.02), 0.014, '#2563eb'))
+  vessels.add(tubeBetween(new THREE.Vector3(-0.12, -0.3, -0.04), new THREE.Vector3(0.38, -0.86, -0.02), 0.014, '#2563eb'))
+  addPart(parts, root, 'vessels', 'Aorte veine cave axes iliaques', 'Vaisseaux', vessels)
+
+  const nerves = new THREE.Group()
+  nerves.position.set(0, -0.18, -0.28)
+  for (const side of [-1, 1] as const) {
+    addPulseArc(nerves, [
+      new THREE.Vector3(0, 0.22, 0),
+      new THREE.Vector3(side * 0.18, -0.1, 0.08),
+      new THREE.Vector3(side * 0.38, -0.62, 0.12),
+      new THREE.Vector3(side * 0.42, -1.15, 0.1),
+    ], '#facc15', 0.012)
+  }
+  addPart(parts, root, 'lumbar-plexus', 'Plexus lombaire et nerfs femoraux', 'Nerfs', nerves)
 }
 
 function addBiophysics(parts: Part[], root: THREE.Group) {
   const membrane = new THREE.Group()
-  for (let i = 0; i < 28; i += 1) {
-    const x = -1.1 + i * 0.08
-    const headA = new THREE.Mesh(new THREE.SphereGeometry(0.035, 16, 12), mat('#67e8f9'))
-    headA.position.set(x, 0.22, 0)
-    const headB = headA.clone()
-    headB.position.y = -0.22
-    membrane.add(headA, headB, tubeBetween(headA.position, headB.position, 0.008, '#22c55e'))
+  membrane.position.set(-0.48, 0.35, 0)
+  for (let i = 0; i < 34; i += 1) {
+    const x = -1.18 + i * 0.07
+    const headA = sphere(0.036, '#67e8f9', [x, 0.24, 0])
+    const headB = sphere(0.036, '#67e8f9', [x, -0.24, 0])
+    membrane.add(headA, headB, tubeBetween(headA.position, headB.position, 0.007, '#22c55e'))
   }
-  addPart(parts, root, 'membrane', 'Membrane et transports', 'Transports', membrane)
+  for (let i = 0; i < 5; i += 1) {
+    const channel = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 0.62, 28), glass('#a78bfa', 0.5))
+    channel.position.set(-0.72 + i * 0.36, 0, 0.02)
+    channel.rotation.x = Math.PI * 0.5
+    membrane.add(channel)
+    addPulseArc(membrane, [
+      new THREE.Vector3(channel.position.x, 0.46, 0.06),
+      new THREE.Vector3(channel.position.x + 0.04, 0.1, 0.1),
+      new THREE.Vector3(channel.position.x - 0.02, -0.46, 0.06),
+    ], '#facc15', 0.006)
+  }
+  addPart(parts, root, 'membrane', 'Membrane plasmique canaux et flux', 'Transports', membrane)
 
   const compartments = new THREE.Group()
-  const lic = new THREE.Mesh(new THREE.SphereGeometry(0.52, 48, 32), glass('#0ea5e9', 0.28))
-  lic.position.set(-0.62, 0, 0)
-  const lec = new THREE.Mesh(new THREE.SphereGeometry(0.52, 48, 32), glass('#a78bfa', 0.24))
-  lec.position.set(0.62, 0, 0)
-  compartments.add(lic, lec)
-  addPart(parts, root, 'compartments', 'Compartiments liquidiens', 'Hydrosode', compartments)
+  compartments.position.set(0.82, 0.34, 0)
+  compartments.add(softEllipsoid('#0ea5e9', [-0.28, 0, 0], [0.52, 0.72, 0.48], 0.28))
+  compartments.add(softEllipsoid('#a78bfa', [0.36, 0, 0], [0.58, 0.74, 0.5], 0.24))
+  for (let i = 0; i < 30; i += 1) {
+    const ion = sphere(0.026, i % 2 ? '#38bdf8' : '#fbbf24', [Math.sin(i) * 0.5, Math.cos(i * 1.7) * 0.45, Math.sin(i * 0.41) * 0.26])
+    compartments.add(ion)
+  }
+  addPulseArc(compartments, [
+    new THREE.Vector3(-0.56, 0.5, 0),
+    new THREE.Vector3(0.02, 0.12, 0.26),
+    new THREE.Vector3(0.64, -0.34, 0.05),
+  ], '#facc15', 0.012)
+  addPart(parts, root, 'compartments', 'Osmose et compartiments liquidiens', 'Hydrosode', compartments)
 
   const circulation = new THREE.Group()
-  circulation.position.set(0, -0.72, 0.05)
-  const loop = new THREE.Mesh(new THREE.TorusGeometry(0.52, 0.035, 18, 96), mat('#ef4444'))
-  loop.scale.set(1.35, 0.62, 0.35)
-  circulation.add(loop)
-  circulation.add(new THREE.Mesh(new THREE.SphereGeometry(0.16, 32, 20), mat('#dc2626')))
-  addPart(parts, root, 'circulation', 'Biophysique de la circulation', 'Circulation', circulation)
+  circulation.position.set(-0.72, -0.62, 0.05)
+  const heart = new THREE.Group()
+  heart.add(softEllipsoid('#dc2626', [-0.08, 0.02, 0], [0.28, 0.34, 0.22]))
+  heart.add(softEllipsoid('#ef4444', [0.12, 0.0, 0.02], [0.27, 0.32, 0.22]))
+  circulation.add(heart)
+  addPulseArc(circulation, [
+    new THREE.Vector3(0.06, 0.2, 0),
+    new THREE.Vector3(0.5, 0.52, 0.16),
+    new THREE.Vector3(0.88, 0.02, 0.1),
+    new THREE.Vector3(0.48, -0.44, -0.02),
+    new THREE.Vector3(-0.12, -0.28, 0),
+  ], '#ef4444', 0.028)
+  addPulseArc(circulation, [
+    new THREE.Vector3(-0.05, 0.15, -0.04),
+    new THREE.Vector3(-0.46, 0.48, -0.12),
+    new THREE.Vector3(-0.72, -0.04, -0.1),
+    new THREE.Vector3(-0.32, -0.48, 0),
+  ], '#2563eb', 0.023)
+  addPart(parts, root, 'circulation', 'Hemodynamique pression debit resistance', 'Circulation', circulation)
 
-  const rays = new THREE.Group()
-  rays.position.set(0, 0.78, 0)
-  for (let i = 0; i < 8; i += 1) {
-    rays.add(tubeBetween(new THREE.Vector3(-0.9, 0, 0), new THREE.Vector3(0.25 + i * 0.08, -0.32 + i * 0.08, 0), 0.01, '#facc15'))
+  const radiology = new THREE.Group()
+  radiology.position.set(0.68, -0.56, 0)
+  const source = sphere(0.13, '#facc15', [-0.86, 0.16, 0], [1, 1, 1], { emissive: new THREE.Color('#facc15'), emissiveIntensity: 0.35 })
+  const target = softEllipsoid('#e5e7eb', [0.05, 0.04, 0], [0.32, 0.56, 0.18], 0.26)
+  const detector = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.95, 0.56), mat('#64748b', { metalness: 0.18, roughness: 0.22 }))
+  detector.position.set(0.88, 0.02, 0)
+  radiology.add(source, target, detector)
+  for (let i = 0; i < 9; i += 1) {
+    radiology.add(tubeBetween(new THREE.Vector3(-0.72, 0.16, 0), new THREE.Vector3(0.76, -0.28 + i * 0.07, -0.22 + i * 0.055), 0.007, '#fde047'))
   }
-  const detector = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.9, 0.46), mat('#94a3b8'))
-  detector.position.set(0.9, 0, 0)
-  rays.add(detector)
-  addPart(parts, root, 'rays', 'Rayons X et radiologie', 'Rayonnements', rays)
+  addPart(parts, root, 'radiology', 'Rayons X attenuation detection', 'Rayonnements', radiology)
+
+  const optics = new THREE.Group()
+  optics.position.set(0.06, 1.05, -0.08)
+  optics.add(softEllipsoid('#bfdbfe', [0, 0, 0], [0.36, 0.24, 0.18], 0.32))
+  const lens = new THREE.Mesh(new THREE.SphereGeometry(0.12, 40, 26), glass('#e0f2fe', 0.5))
+  lens.scale.set(0.45, 1.0, 1.0)
+  lens.position.set(0.22, 0, 0)
+  optics.add(lens)
+  addPulseArc(optics, [
+    new THREE.Vector3(-0.7, 0.22, 0),
+    new THREE.Vector3(0.18, 0.06, 0),
+    new THREE.Vector3(0.72, -0.04, 0),
+  ], '#38bdf8', 0.01)
+  addPulseArc(optics, [
+    new THREE.Vector3(-0.7, -0.18, 0),
+    new THREE.Vector3(0.18, -0.04, 0),
+    new THREE.Vector3(0.72, 0.06, 0),
+  ], '#38bdf8', 0.01)
+  addPart(parts, root, 'optics', 'Optique medicale lentille foyer', 'Optique', optics)
 }
 
 function addHistology(parts: Part[], root: THREE.Group) {
   const epithelium = new THREE.Group()
-  for (let i = 0; i < 18; i += 1) {
-    const cell = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.36, 0.16), glass('#38bdf8', 0.42))
-    cell.position.set((i % 6 - 2.5) * 0.18, 0.32, (Math.floor(i / 6) - 1) * 0.18)
-    epithelium.add(cell)
+  epithelium.position.set(-0.6, 0.52, 0)
+  for (let i = 0; i < 36; i += 1) {
+    const cell = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.32 + (i % 3) * 0.025, 0.13), glass(i % 4 === 0 ? '#22d3ee' : '#38bdf8', 0.42))
+    cell.position.set((i % 9 - 4) * 0.14, 0.1, (Math.floor(i / 9) - 1.5) * 0.14)
+    const nucleus = sphere(0.028, '#312e81', [cell.position.x, -0.02, cell.position.z])
+    epithelium.add(cell, nucleus)
   }
-  addPart(parts, root, 'epithelium', 'Epithelium', 'Histologie', epithelium)
+  const basal = new THREE.Mesh(new THREE.BoxGeometry(1.36, 0.035, 0.58), mat('#f9a8d4'))
+  basal.position.y = -0.08
+  epithelium.add(basal)
+  addPart(parts, root, 'epithelium', 'Epithelium prismatique et membrane basale', 'Histologie', epithelium)
+
+  const gland = new THREE.Group()
+  gland.position.set(0.74, 0.56, 0)
+  for (let i = 0; i < 12; i += 1) {
+    const angle = (i / 12) * Math.PI * 2
+    const acinus = softEllipsoid('#f0abfc', [Math.cos(angle) * 0.34, Math.sin(angle) * 0.22, Math.sin(angle * 2) * 0.12], [0.18, 0.16, 0.16], 0.5)
+    gland.add(acinus)
+  }
+  gland.add(tubeBetween(new THREE.Vector3(0, 0, 0), new THREE.Vector3(0.58, -0.46, 0.08), 0.035, '#f9a8d4'))
+  addPart(parts, root, 'gland', 'Acini glandulaires et canal excreteur', 'Histologie', gland)
 
   const bone = new THREE.Group()
-  bone.position.set(-0.74, -0.28, 0)
-  for (let i = 0; i < 6; i += 1) {
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.1 + i * 0.035, 0.006, 8, 48), mat('#d8b384'))
+  bone.position.set(-0.86, -0.24, 0)
+  for (let i = 0; i < 7; i += 1) {
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.09 + i * 0.038, 0.0065, 10, 70), mat(i % 2 ? '#d8b384' : '#e8d2aa', { roughness: 0.52 }))
     ring.rotation.x = Math.PI * 0.5
     bone.add(ring)
   }
-  bone.add(new THREE.Mesh(new THREE.SphereGeometry(0.045, 20, 14), mat('#78350f')))
-  addPart(parts, root, 'bone-tissue', 'Osteon tissu osseux', 'Tissu osseux', bone)
+  bone.add(sphere(0.045, '#78350f', [0, 0, 0]))
+  for (let i = 0; i < 18; i += 1) {
+    const angle = i * 0.65
+    bone.add(sphere(0.015, '#92400e', [Math.cos(angle) * 0.18, Math.sin(i) * 0.03, Math.sin(angle) * 0.18]))
+  }
+  addPart(parts, root, 'bone-tissue', 'Osteon lamelles canal de Havers', 'Tissu osseux', bone)
 
   const muscle = new THREE.Group()
-  muscle.position.set(0.68, -0.34, 0)
-  for (let i = 0; i < 8; i += 1) {
-    const fiber = capsule(`Fibre musculaire ${i + 1}`, '#f87171', [1.18, 0.18, 0.18], [0, 0, Math.PI * 0.5])
-    fiber.position.set(0, (i - 3.5) * 0.055, (i % 2) * 0.05)
+  muscle.position.set(0.78, -0.28, 0)
+  for (let i = 0; i < 10; i += 1) {
+    const fiber = capsule(`Fibre musculaire ${i + 1}`, i % 2 ? '#ef4444' : '#f87171', [1.35, 0.15, 0.15], [0, 0, Math.PI * 0.5])
+    fiber.position.set(0, (i - 4.5) * 0.055, (i % 3) * 0.045)
+    for (let j = 0; j < 6; j += 1) {
+      fiber.add(tubeBetween(new THREE.Vector3(-0.44 + j * 0.15, -0.02, 0.08), new THREE.Vector3(-0.44 + j * 0.15, 0.02, 0.08), 0.004, '#fecaca'))
+    }
     muscle.add(fiber)
   }
-  addPart(parts, root, 'muscle', 'Tissu musculaire', 'Tissu musculaire', muscle)
+  addPart(parts, root, 'muscle', 'Faisceaux musculaires et striations', 'Tissu musculaire', muscle)
+
+  const neuron = new THREE.Group()
+  neuron.position.set(-0.02, -0.7, 0.08)
+  neuron.add(sphere(0.13, '#fbbf24', [0, 0, 0]))
+  for (let i = 0; i < 8; i += 1) {
+    const angle = (i / 8) * Math.PI * 2
+    addPulseArc(neuron, [
+      new THREE.Vector3(0, 0, 0),
+      new THREE.Vector3(Math.cos(angle) * 0.28, Math.sin(angle) * 0.2, Math.sin(angle) * 0.18),
+      new THREE.Vector3(Math.cos(angle) * 0.52, Math.sin(angle) * 0.34, Math.sin(angle) * 0.3),
+    ], '#fbbf24', 0.009)
+  }
+  addPulseArc(neuron, [
+    new THREE.Vector3(0.12, 0, 0),
+    new THREE.Vector3(0.55, -0.1, 0.08),
+    new THREE.Vector3(0.98, -0.02, 0.02),
+  ], '#fde047', 0.018)
+  addPart(parts, root, 'neuron', 'Neurone prolongements et synapse', 'Tissu nerveux', neuron)
 
   const embryo = new THREE.Group()
-  embryo.position.set(0, -0.8, 0.18)
-  embryo.add(new THREE.Mesh(new THREE.SphereGeometry(0.24, 48, 32), glass('#f9a8d4', 0.45)))
-  embryo.add(new THREE.Mesh(new THREE.TorusGeometry(0.28, 0.018, 12, 72), mat('#c084fc')))
-  addPart(parts, root, 'embryo', 'Disque embryonnaire', 'Embryologie', embryo)
+  embryo.position.set(0, -1.08, 0.2)
+  embryo.add(softEllipsoid('#f9a8d4', [0, 0, 0], [0.42, 0.22, 0.2], 0.52))
+  embryo.add(new THREE.Mesh(new THREE.TorusGeometry(0.31, 0.018, 14, 88), mat('#c084fc')))
+  addPulseArc(embryo, [
+    new THREE.Vector3(-0.26, 0.04, 0.04),
+    new THREE.Vector3(0, 0.18, 0.1),
+    new THREE.Vector3(0.26, 0.04, 0.04),
+  ], '#67e8f9', 0.014)
+  addPart(parts, root, 'embryo', 'Neurulation disque embryonnaire', 'Embryologie', embryo)
 }
 
 function addMethodology(parts: Part[], root: THREE.Group) {
@@ -413,6 +605,95 @@ function addMethodology(parts: Part[], root: THREE.Group) {
   }
   for (let i = 1; i < nodes.length; i += 1) network.add(tubeBetween(nodes[0], nodes[i], 0.006, '#38bdf8'))
   addPart(parts, root, 'network', 'Reseau neuronal', 'Apprentissage', network)
+}
+
+function addPsychoSocio(parts: Part[], root: THREE.Group) {
+  const brain = new THREE.Group()
+  brain.position.set(-0.42, 0.42, 0)
+  const left = softEllipsoid('#f0abfc', [-0.18, 0, 0], [0.72, 0.9, 0.55], 0.4)
+  const right = softEllipsoid('#c4b5fd', [0.18, 0, 0], [0.72, 0.9, 0.55], 0.38)
+  brain.add(left, right)
+  for (let i = 0; i < 18; i += 1) {
+    const x = -0.52 + (i % 6) * 0.2
+    const y = 0.32 - Math.floor(i / 6) * 0.28
+    addPulseArc(brain, [
+      new THREE.Vector3(x, y, 0.32),
+      new THREE.Vector3(x + 0.08, y - 0.08, 0.48),
+      new THREE.Vector3(x - 0.03, y - 0.18, 0.34),
+    ], '#f9a8d4', 0.008)
+  }
+  addPart(parts, root, 'brain-cortex', 'Cortex et aires associatives', 'Neuropsychologie', brain)
+
+  const limbic = new THREE.Group()
+  limbic.position.set(-0.42, 0.04, 0.36)
+  const hippocampus = capsule('Hippocampe', '#f97316', [1.35, 0.32, 0.28], [0.4, 0.1, 1.1])
+  hippocampus.position.set(0.08, -0.16, 0)
+  const amygdala = sphere(0.11, '#ef4444', [-0.22, -0.08, 0.1], [1, 0.86, 0.9], { roughness: 0.24 })
+  const thalamus = softEllipsoid('#38bdf8', [0.05, 0.08, -0.02], [0.28, 0.22, 0.2], 0.58)
+  limbic.add(hippocampus, amygdala, thalamus)
+  addPulseArc(limbic, [
+    new THREE.Vector3(-0.24, -0.08, 0.1),
+    new THREE.Vector3(-0.05, 0.18, 0.12),
+    new THREE.Vector3(0.22, -0.18, 0.04),
+  ], '#facc15', 0.014)
+  addPart(parts, root, 'limbic-system', 'Hippocampe amygdale thalamus', 'Emotion memoire', limbic)
+
+  const consultation = new THREE.Group()
+  consultation.position.set(0.78, 0.34, 0)
+  const desk = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.08, 0.42), mat('#334155', { roughness: 0.45 }))
+  desk.position.set(0, -0.18, 0)
+  consultation.add(desk)
+  const doctor = new THREE.Group()
+  doctor.position.set(-0.34, 0.1, 0.04)
+  doctor.add(sphere(0.09, '#fde68a', [0, 0.26, 0]))
+  doctor.add(new THREE.Mesh(new THREE.CapsuleGeometry(0.1, 0.36, 12, 28), mat('#e5e7eb')))
+  const patient = new THREE.Group()
+  patient.position.set(0.34, 0.08, 0.04)
+  patient.add(sphere(0.09, '#f8b4a2', [0, 0.26, 0]))
+  patient.add(new THREE.Mesh(new THREE.CapsuleGeometry(0.1, 0.34, 12, 28), mat('#60a5fa')))
+  consultation.add(doctor, patient)
+  addPulseArc(consultation, [
+    new THREE.Vector3(-0.22, 0.28, 0.08),
+    new THREE.Vector3(0, 0.42, 0.2),
+    new THREE.Vector3(0.22, 0.28, 0.08),
+  ], '#22d3ee', 0.013)
+  addPulseArc(consultation, [
+    new THREE.Vector3(0.22, 0.2, 0.03),
+    new THREE.Vector3(0, 0.06, 0.18),
+    new THREE.Vector3(-0.22, 0.2, 0.03),
+  ], '#f472b6', 0.01)
+  addPart(parts, root, 'clinical-relationship', 'Relation medecin patient empathie', 'Communication', consultation)
+
+  const socialNetwork = new THREE.Group()
+  socialNetwork.position.set(0.64, -0.52, 0)
+  const nodes: THREE.Vector3[] = []
+  for (let i = 0; i < 18; i += 1) {
+    const angle = i * 0.92
+    const p = new THREE.Vector3(Math.cos(angle) * (0.24 + (i % 4) * 0.12), Math.sin(i * 1.35) * 0.34, Math.sin(angle) * 0.28)
+    nodes.push(p)
+    socialNetwork.add(sphere(i % 5 === 0 ? 0.065 : 0.042, i % 5 === 0 ? '#facc15' : '#14b8a6', [p.x, p.y, p.z]))
+  }
+  for (let i = 1; i < nodes.length; i += 1) {
+    if (i % 2 === 0 || i % 5 === 0) socialNetwork.add(tubeBetween(nodes[Math.max(0, i - 3)], nodes[i], 0.006, '#38bdf8'))
+    socialNetwork.add(tubeBetween(nodes[0], nodes[i], 0.004, '#475569'))
+  }
+  addPart(parts, root, 'social-network', 'Famille groupe normes et influence sociale', 'Sociologie', socialNetwork)
+
+  const history = new THREE.Group()
+  history.position.set(-0.62, -0.66, -0.02)
+  const base = new THREE.Mesh(new THREE.BoxGeometry(1.18, 0.04, 0.12), mat('#94a3b8', { metalness: 0.12 }))
+  history.add(base)
+  for (let i = 0; i < 6; i += 1) {
+    const marker = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.22 + i * 0.025, 18), mat(i % 2 ? '#22c55e' : '#f59e0b'))
+    marker.position.set(-0.48 + i * 0.19, 0.11 + i * 0.012, 0)
+    history.add(marker)
+  }
+  addPulseArc(history, [
+    new THREE.Vector3(-0.54, 0.26, 0.02),
+    new THREE.Vector3(-0.12, 0.46, 0.08),
+    new THREE.Vector3(0.54, 0.38, 0.02),
+  ], '#facc15', 0.009)
+  addPart(parts, root, 'medical-history', 'Evolution historique des savoirs medicaux', 'Histoire', history)
 }
 
 function addPublicHealth(parts: Part[], root: THREE.Group) {
@@ -476,6 +757,7 @@ function buildVariant(variant: PremiumModule3DVariant, parts: Part[], root: THRE
   if (variant === 'biophysics') addBiophysics(parts, root)
   if (variant === 'histology') addHistology(parts, root)
   if (variant === 'methodology') addMethodology(parts, root)
+  if (variant === 'psycho-socio') addPsychoSocio(parts, root)
   if (variant === 'public-health') addPublicHealth(parts, root)
 }
 
