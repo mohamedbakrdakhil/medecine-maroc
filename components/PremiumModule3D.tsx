@@ -5,7 +5,7 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
 
-export type PremiumModule3DVariant = 'biology' | 'chemistry' | 'methodology' | 'public-health'
+export type PremiumModule3DVariant = 'anatomy' | 'biology' | 'chemistry' | 'biophysics' | 'histology' | 'methodology' | 'public-health'
 
 type PremiumModule3DProps = {
   variant: PremiumModule3DVariant
@@ -23,15 +23,21 @@ type Part = {
 }
 
 const variantTitle: Record<PremiumModule3DVariant, string> = {
+  anatomy: 'Anatomie abdomen et membre inferieur 3D',
   biology: 'Cellule eucaryote 3D',
   chemistry: 'Biochimie moleculaire 3D',
+  biophysics: 'Biophysique 3D',
+  histology: 'Histologie et embryologie 3D',
   methodology: 'Memoire et apprentissage 3D',
   'public-health': 'Sante publique 3D',
 }
 
 const variantIntro: Record<PremiumModule3DVariant, string> = {
+  anatomy: 'Abdomen, bassin, membre inferieur, axes vasculaires et reperes osseux.',
   biology: 'Organites, noyau, ADN, mitochondries, reticulum et cytosquelette.',
   chemistry: 'Proteine, poche enzymatique, chaine peptidique et molecule organique.',
+  biophysics: 'Compartiments, membrane, flux, circulation, rayons et optique.',
+  histology: 'Epithelium, tissu osseux, muscle, neurone et developpement embryonnaire.',
   methodology: 'Cerveau, hippocampe, cortex et reseaux neuronaux de memorisation.',
   'public-health': 'Population, foyers, hopitaux, diffusion et indicateurs epidemiologiques.',
 }
@@ -252,6 +258,127 @@ function addChemistry(parts: Part[], root: THREE.Group) {
   addPart(parts, root, 'heme', 'Noyau heminique', 'Proteines', heme)
 }
 
+function addAnatomy(parts: Part[], root: THREE.Group) {
+  const abdomen = new THREE.Group()
+  const trunk = new THREE.Mesh(new THREE.CapsuleGeometry(0.55, 1.1, 24, 48), glass('#f8b4a2', 0.36))
+  trunk.scale.set(1.05, 1.0, 0.62)
+  trunk.position.set(0, 0.55, 0)
+  abdomen.add(trunk)
+  const bowel = new THREE.Mesh(new THREE.TorusKnotGeometry(0.34, 0.055, 130, 14, 3, 4), mat('#fca5a5'))
+  bowel.position.set(0, 0.3, 0.25)
+  abdomen.add(bowel)
+  const liver = new THREE.Mesh(new THREE.SphereGeometry(0.25, 42, 24), mat('#7f1d1d'))
+  liver.scale.set(1.45, 0.58, 0.72)
+  liver.position.set(0.28, 0.75, 0.22)
+  abdomen.add(liver)
+  addPart(parts, root, 'abdomen', 'Abdomen et visceres', 'Abdomen', abdomen)
+
+  const pelvis = new THREE.Group()
+  pelvis.position.set(0, -0.32, 0)
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.48, 0.055, 20, 80), mat('#d8b384'))
+  ring.scale.set(1.15, 0.62, 0.52)
+  ring.rotation.x = Math.PI * 0.5
+  pelvis.add(ring)
+  const sacrum = new THREE.Mesh(new THREE.CapsuleGeometry(0.11, 0.44, 10, 28), mat('#c89a62'))
+  sacrum.position.set(0, 0.02, -0.28)
+  pelvis.add(sacrum)
+  addPart(parts, root, 'pelvis', 'Bassin osseux', 'Squelette', pelvis)
+
+  for (const side of [-1, 1] as const) {
+    const limb = new THREE.Group()
+    limb.position.set(side * 0.36, -1.04, 0)
+    const femur = tubeBetween(new THREE.Vector3(0, 0.46, 0), new THREE.Vector3(side * 0.08, -0.35, 0), 0.045, '#d8b384')
+    const tibia = tubeBetween(new THREE.Vector3(side * 0.08, -0.42, 0), new THREE.Vector3(side * 0.04, -1.12, 0.02), 0.035, '#d8b384')
+    const fibula = tubeBetween(new THREE.Vector3(side * 0.18, -0.44, -0.04), new THREE.Vector3(side * 0.15, -1.1, -0.04), 0.02, '#c89a62')
+    const foot = new THREE.Mesh(new THREE.CapsuleGeometry(0.09, 0.45, 10, 28), mat('#d8b384'))
+    foot.position.set(side * 0.08, -1.28, 0.18)
+    foot.rotation.x = Math.PI * 0.5
+    limb.add(femur, tibia, fibula, foot)
+    addPart(parts, root, side === -1 ? 'left-lower-limb' : 'right-lower-limb', side === -1 ? 'Membre inferieur gauche' : 'Membre inferieur droit', 'Membre inferieur', limb)
+  }
+
+  const vessels = new THREE.Group()
+  vessels.position.set(0, -0.16, 0.32)
+  vessels.add(tubeBetween(new THREE.Vector3(0, 0.78, 0), new THREE.Vector3(0, -0.55, 0), 0.025, '#dc2626'))
+  vessels.add(tubeBetween(new THREE.Vector3(0, -0.25, 0), new THREE.Vector3(-0.42, -0.78, 0), 0.018, '#dc2626'))
+  vessels.add(tubeBetween(new THREE.Vector3(0, -0.25, 0), new THREE.Vector3(0.42, -0.78, 0), 0.018, '#dc2626'))
+  addPart(parts, root, 'vessels', 'Axe aorto-iliaque', 'Vaisseaux', vessels)
+}
+
+function addBiophysics(parts: Part[], root: THREE.Group) {
+  const membrane = new THREE.Group()
+  for (let i = 0; i < 28; i += 1) {
+    const x = -1.1 + i * 0.08
+    const headA = new THREE.Mesh(new THREE.SphereGeometry(0.035, 16, 12), mat('#67e8f9'))
+    headA.position.set(x, 0.22, 0)
+    const headB = headA.clone()
+    headB.position.y = -0.22
+    membrane.add(headA, headB, tubeBetween(headA.position, headB.position, 0.008, '#22c55e'))
+  }
+  addPart(parts, root, 'membrane', 'Membrane et transports', 'Transports', membrane)
+
+  const compartments = new THREE.Group()
+  const lic = new THREE.Mesh(new THREE.SphereGeometry(0.52, 48, 32), glass('#0ea5e9', 0.28))
+  lic.position.set(-0.62, 0, 0)
+  const lec = new THREE.Mesh(new THREE.SphereGeometry(0.52, 48, 32), glass('#a78bfa', 0.24))
+  lec.position.set(0.62, 0, 0)
+  compartments.add(lic, lec)
+  addPart(parts, root, 'compartments', 'Compartiments liquidiens', 'Hydrosode', compartments)
+
+  const circulation = new THREE.Group()
+  circulation.position.set(0, -0.72, 0.05)
+  const loop = new THREE.Mesh(new THREE.TorusGeometry(0.52, 0.035, 18, 96), mat('#ef4444'))
+  loop.scale.set(1.35, 0.62, 0.35)
+  circulation.add(loop)
+  circulation.add(new THREE.Mesh(new THREE.SphereGeometry(0.16, 32, 20), mat('#dc2626')))
+  addPart(parts, root, 'circulation', 'Biophysique de la circulation', 'Circulation', circulation)
+
+  const rays = new THREE.Group()
+  rays.position.set(0, 0.78, 0)
+  for (let i = 0; i < 8; i += 1) {
+    rays.add(tubeBetween(new THREE.Vector3(-0.9, 0, 0), new THREE.Vector3(0.25 + i * 0.08, -0.32 + i * 0.08, 0), 0.01, '#facc15'))
+  }
+  const detector = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.9, 0.46), mat('#94a3b8'))
+  detector.position.set(0.9, 0, 0)
+  rays.add(detector)
+  addPart(parts, root, 'rays', 'Rayons X et radiologie', 'Rayonnements', rays)
+}
+
+function addHistology(parts: Part[], root: THREE.Group) {
+  const epithelium = new THREE.Group()
+  for (let i = 0; i < 18; i += 1) {
+    const cell = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.36, 0.16), glass('#38bdf8', 0.42))
+    cell.position.set((i % 6 - 2.5) * 0.18, 0.32, (Math.floor(i / 6) - 1) * 0.18)
+    epithelium.add(cell)
+  }
+  addPart(parts, root, 'epithelium', 'Epithelium', 'Histologie', epithelium)
+
+  const bone = new THREE.Group()
+  bone.position.set(-0.74, -0.28, 0)
+  for (let i = 0; i < 6; i += 1) {
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.1 + i * 0.035, 0.006, 8, 48), mat('#d8b384'))
+    ring.rotation.x = Math.PI * 0.5
+    bone.add(ring)
+  }
+  bone.add(new THREE.Mesh(new THREE.SphereGeometry(0.045, 20, 14), mat('#78350f')))
+  addPart(parts, root, 'bone-tissue', 'Osteon tissu osseux', 'Tissu osseux', bone)
+
+  const muscle = new THREE.Group()
+  muscle.position.set(0.68, -0.34, 0)
+  for (let i = 0; i < 8; i += 1) {
+    const fiber = capsule(`Fibre musculaire ${i + 1}`, '#f87171', [1.18, 0.18, 0.18], [0, 0, Math.PI * 0.5])
+    fiber.position.set(0, (i - 3.5) * 0.055, (i % 2) * 0.05)
+    muscle.add(fiber)
+  }
+  addPart(parts, root, 'muscle', 'Tissu musculaire', 'Tissu musculaire', muscle)
+
+  const embryo = new THREE.Group()
+  embryo.position.set(0, -0.8, 0.18)
+  embryo.add(new THREE.Mesh(new THREE.SphereGeometry(0.24, 48, 32), glass('#f9a8d4', 0.45)))
+  embryo.add(new THREE.Mesh(new THREE.TorusGeometry(0.28, 0.018, 12, 72), mat('#c084fc')))
+  addPart(parts, root, 'embryo', 'Disque embryonnaire', 'Embryologie', embryo)
+}
+
 function addMethodology(parts: Part[], root: THREE.Group) {
   const brain = new THREE.Group()
   const left = new THREE.Mesh(new THREE.SphereGeometry(0.62, 64, 40), glass('#f0abfc', 0.36))
@@ -343,8 +470,11 @@ function addPublicHealth(parts: Part[], root: THREE.Group) {
 }
 
 function buildVariant(variant: PremiumModule3DVariant, parts: Part[], root: THREE.Group) {
+  if (variant === 'anatomy') addAnatomy(parts, root)
   if (variant === 'biology') addBiology(parts, root)
   if (variant === 'chemistry') addChemistry(parts, root)
+  if (variant === 'biophysics') addBiophysics(parts, root)
+  if (variant === 'histology') addHistology(parts, root)
   if (variant === 'methodology') addMethodology(parts, root)
   if (variant === 'public-health') addPublicHealth(parts, root)
 }

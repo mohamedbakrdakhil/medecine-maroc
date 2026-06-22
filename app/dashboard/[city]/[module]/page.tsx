@@ -16,8 +16,13 @@ import PremiumModule3D, { type PremiumModule3DVariant } from '@/components/Premi
 function getPremiumVariant(moduleId: string): PremiumModule3DVariant | null {
   if (moduleId.startsWith('biologie')) return 'biology'
   if (moduleId.startsWith('chimie')) return 'chemistry'
+  if (moduleId.startsWith('anatomie-2')) return 'anatomy'
+  if (moduleId.startsWith('biophysique')) return 'biophysics'
+  if (moduleId.startsWith('histologie')) return 'histology'
   if (moduleId.startsWith('methodologie')) return 'methodology'
   if (moduleId.startsWith('sante-publique')) return 'public-health'
+  if (moduleId.startsWith('histoire-psycho-socio')) return 'methodology'
+  if (moduleId.startsWith('techniques-communication')) return 'methodology'
   return null
 }
 

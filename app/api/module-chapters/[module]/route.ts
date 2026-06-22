@@ -5,6 +5,12 @@ import { biologieS1Chapters } from '@/lib/content/euromed-s1-biologie'
 import { chimieBiochimieS1Chapters } from '@/lib/content/euromed-s1-chimie-biochimie'
 import { methodologieS1Chapters } from '@/lib/content/euromed-s1-methodologie'
 import { santePubliqueS1Chapters } from '@/lib/content/euromed-s1-sante-publique'
+import { anatomieS2Chapters } from '@/lib/content/euromed-s2-anatomie-2-s2'
+import { biophysiqueS2Chapters } from '@/lib/content/euromed-s2-biophysique-s2'
+import { histologieEmbryologieS2Chapters } from '@/lib/content/euromed-s2-histologie-embryologie-1-s2'
+import { histoirePsychoSocioS2Chapters } from '@/lib/content/euromed-s2-histoire-psycho-socio-s2'
+import { techniquesCommunicationS2Chapters } from '@/lib/content/euromed-s2-techniques-communication-s2'
+import { cahierExamensS2Chapters } from '@/lib/content/euromed-s2-cahier-examens-s2'
 import type { Chapter } from '@/lib/content/types'
 
 export const dynamic = 'force-dynamic'
@@ -15,6 +21,12 @@ const moduleChapters = {
   'chimie-biochimie-1-s1': chimieBiochimieS1Chapters,
   'methodologie-1-s1': methodologieS1Chapters,
   'sante-publique-1-s1': santePubliqueS1Chapters,
+  'anatomie-2-s2': anatomieS2Chapters,
+  'biophysique-s2': biophysiqueS2Chapters,
+  'histologie-embryologie-1-s2': histologieEmbryologieS2Chapters,
+  'histoire-psycho-socio-s2': histoirePsychoSocioS2Chapters,
+  'techniques-communication-s2': techniquesCommunicationS2Chapters,
+  'cahier-examens-s2': cahierExamensS2Chapters,
 }
 
 function keepOnlyOriginalSupports(chapters: Chapter[]): Chapter[] {
