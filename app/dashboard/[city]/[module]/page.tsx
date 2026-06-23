@@ -12,6 +12,7 @@ import Thorax3D from '@/components/Thorax3D'
 import GLBModelViewer from '@/components/GLBModelViewer'
 import MembreSuperieur3DViewerV4 from '@/components/MembreSuperieur3DViewerV4'
 import PremiumModule3D, { type PremiumModule3DVariant } from '@/components/PremiumModule3D'
+import EuromedAtlas3D, { getEuromedAtlasModels } from '@/components/EuromedAtlas3D'
 
 function getPremiumVariant(moduleId: string): PremiumModule3DVariant | null {
   if (moduleId.startsWith('biologie')) return 'biology'
@@ -28,6 +29,7 @@ function getPremiumVariant(moduleId: string): PremiumModule3DVariant | null {
 
 function ChapterContent({ chapter, moduleId }: { chapter: Chapter; moduleId: string }) {
   const premiumVariant = getPremiumVariant(moduleId)
+  const atlasModels = getEuromedAtlasModels(moduleId)
   const hasDedicated3D = Boolean(chapter.models3D?.length || chapter.model3D)
 
   return (
@@ -37,7 +39,9 @@ function ChapterContent({ chapter, moduleId }: { chapter: Chapter; moduleId: str
         <h1 className="text-2xl font-bold text-gray-900">{chapter.title}</h1>
       </div>
 
-      {premiumVariant && !hasDedicated3D && <PremiumModule3D variant={premiumVariant} title={chapter.title} />}
+      {atlasModels && !hasDedicated3D && <EuromedAtlas3D moduleId={moduleId} title={chapter.title} />}
+
+      {!atlasModels && premiumVariant && !hasDedicated3D && <PremiumModule3D variant={premiumVariant} title={chapter.title} />}
 
       {chapter.models3D?.map((model) => (
         model.viewer === 'membre-superieur-v4' ? (

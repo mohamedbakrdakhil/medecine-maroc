@@ -1,0 +1,122 @@
+{
+  "atlasId": "euromed-premium-3d-atlas-v1",
+  "version": "1.0.0",
+  "description": "Manifest pédagogique des scènes 3D générées pour les modules médicaux. Chaque modèle GLB contient des objets nommés, des propriétés exportées et des descriptions utilisables dans le viewer web.",
+  "viewerComponent": "Medical3DViewerUniversalPremium.jsx",
+  "blenderScript": "euromed_premium_3d_atlas_blender_master_v1.py",
+  "defaultLabelStrategy": "Nom sélection + liste de recherche pour éviter que les labels couvrent le schéma.",
+  "modules": [
+    {
+      "id": "abdomen_premium",
+      "title": "Anatomie de l’abdomen",
+      "modelUrl": "/models/euromed/s1/anatomie/abdomen_premium.glb",
+      "sourceCourses": ["ANATOMIE DE L’ABDOMEN - Partie 1", "ANATOMIE DE L’ABDOMEN - Partie 2"],
+      "scenes": [
+        "Anatomie de surface et paroi antérieure",
+        "Oblique externe, oblique interne, transverse, grand droit",
+        "Canal inguinal",
+        "Cavité péritonéale et coupes",
+        "Estomac, duodéno-pancréas, foie, intestin, côlon, rectum",
+        "Région rétro-péritonéale : aorte, veine cave inférieure, lymphatiques, nerfs",
+        "Reins, vessie, prostate/utérus selon adaptation future"
+      ],
+      "recommendedControls": ["Organes", "Paroi", "Vaisseaux", "Rétro-péritonéal", "Péritoine", "Labels essentiels", "Recherche structure"]
+    },
+    {
+      "id": "membre_superieur_premium",
+      "title": "Anatomie du membre supérieur",
+      "modelUrl": "/models/euromed/s1/anatomie/membre_superieur_premium.glb",
+      "sourceCourses": ["ANATOMIE DU MEMBRE SUPÉRIEUR"],
+      "scenes": ["Squelette", "Région axillaire", "Région scapulaire", "Bras", "Avant-bras", "Main", "Plexus brachial", "Vascularisation"],
+      "recommendedControls": ["Os", "Muscles", "Nerfs", "Vaisseaux", "Vue axillaire", "Vue main"]
+    },
+    {
+      "id": "membre_inferieur_premium",
+      "title": "Anatomie du membre inférieur",
+      "modelUrl": "/models/euromed/s1/anatomie/membre_inferieur_premium.glb",
+      "sourceCourses": ["ANATOMIE DU MEMBRE INFÉRIEUR - Partie 1", "ANATOMIE DU MEMBRE INFÉRIEUR - Partie 2"],
+      "scenes": ["Topographie antérieure/postérieure", "Plexus lombo-sacré et nerf sciatique", "Région inguino-fémorale", "Cuisse antérieure", "Région obturatrice", "Région fessière", "Région poplitée", "Jambe", "Plante du pied"],
+      "recommendedControls": ["Os", "Muscles", "Nerfs", "Vaisseaux", "Pied", "Vue fessière", "Vue inguinale"]
+    },
+    {
+      "id": "radiologie_rx_premium",
+      "title": "Rayons X et radiologie",
+      "modelUrl": "/models/euromed/s1/biophysique/radiologie_rx_premium.glb",
+      "sourceCourses": ["Rayons X et radiologie"],
+      "scenes": ["Tube de Coolidge", "Filament et effet thermo-ionique", "Électrons accélérés", "Anode en tungstène", "Bremsstrahlung", "Fluorescence Kα/Kβ", "Filtre aluminium", "Atténuation patient", "Détecteur et image radiante"],
+      "recommendedControls": ["Production", "Filtration", "Atténuation", "Image", "Flux électrons", "Flux RX"]
+    },
+    {
+      "id": "radiobiologie_premium",
+      "title": "Radiobiologie",
+      "modelUrl": "/models/euromed/s1/biophysique/radiobiologie_premium.glb",
+      "sourceCourses": ["Radiobiologie"],
+      "scenes": ["Modes d’exposition", "Dose absorbée/équivalente/efficace", "TLE faible/élevé", "Interaction physique", "Radiolyse et radicaux libres", "ADN", "Lésions moléculaires", "Réparation"],
+      "recommendedControls": ["Cellule", "ADN", "Radiations", "Radicaux", "Lésions"]
+    },
+    {
+      "id": "circulation_premium",
+      "title": "Biophysique de la circulation",
+      "modelUrl": "/models/euromed/s1/biophysique/circulation_premium.glb",
+      "sourceCourses": ["Biophysique de la circulation"],
+      "scenes": ["Pression hydrostatique", "Manomètre", "Pression artérielle", "Pression veineuse centrale", "Débit", "Continuité", "Sténose", "Écoulement laminaire"],
+      "recommendedControls": ["Vaisseaux", "Flux", "Pression", "Sténose", "Manomètre"]
+    },
+    {
+      "id": "acide_base_premium",
+      "title": "Propriétés acido-basiques des solutions",
+      "modelUrl": "/models/euromed/s1/biophysique/acide_base_premium.glb",
+      "sourceCourses": ["Propriétés acido-basiques des solutions"],
+      "scenes": ["Échelle pH", "Sang artériel/veineux", "Couples acide/base", "Transfert de proton", "Système tampon CO2/HCO3-", "Diagramme de Davenport"],
+      "recommendedControls": ["pH", "Tampon", "Protons", "Molécules", "Davenport"]
+    },
+    {
+      "id": "transports_membranaires_premium",
+      "title": "Transports transmembranaires",
+      "modelUrl": "/models/euromed/s1/biophysique/transports_membranaires_premium.glb",
+      "sourceCourses": ["Transports transmembranaires"],
+      "scenes": ["Bicouche lipidique", "Loi de Fick", "Gradient de concentration", "Osmose", "Canaux ioniques", "Transport actif"],
+      "recommendedControls": ["Membrane", "Canal", "Pompe", "Flux", "Ions", "Eau"]
+    },
+    {
+      "id": "compartiments_liquidiens_premium",
+      "title": "Compartiments liquidiens de l’organisme",
+      "modelUrl": "/models/euromed/s1/biophysique/compartiments_liquidiens_premium.glb",
+      "sourceCourses": ["Compartiments liquidiens de l’organisme"],
+      "scenes": ["Eau totale", "Compartiment intracellulaire", "Compartiment extracellulaire", "Plasma", "Interstitium", "Sang comme suspension", "Traceurs"],
+      "recommendedControls": ["CIC", "CEC", "Plasma", "Traceurs", "Sang"]
+    },
+    {
+      "id": "equilibre_hydrosode_premium",
+      "title": "Équilibre hydrosodé",
+      "modelUrl": "/models/euromed/s1/biophysique/equilibre_hydrosode_premium.glb",
+      "sourceCourses": ["Équilibre hydrosodé"],
+      "scenes": ["Rein", "Néphron", "Volémie efficace", "Osmolalité efficace", "Tonicité", "ADH", "Aldostérone", "Réabsorption eau/Na+"],
+      "recommendedControls": ["Rein", "Hormones", "Tonicité", "Flux eau", "Flux sodium"]
+    },
+    {
+      "id": "oxydoreduction_premium",
+      "title": "Oxydo-réduction",
+      "modelUrl": "/models/euromed/s1/biophysique/oxydoreduction_premium.glb",
+      "sourceCourses": ["Oxydo-réduction"],
+      "scenes": ["Pile", "Anode", "Cathode", "Pont salin", "Transfert d’électrons", "Couples Ox/Red", "Potentiel de Nernst"],
+      "recommendedControls": ["Anode", "Cathode", "Électrons", "Ions", "Nernst"]
+    },
+    {
+      "id": "optique_vision_audition_premium",
+      "title": "Optique, œil, laser et audition",
+      "modelUrl": "/models/euromed/s1/biophysique/optique_vision_audition_premium.glb",
+      "sourceCourses": ["Cours de biophysique : optique, lasers médicaux, audition"],
+      "scenes": ["Dioptres", "Lentilles", "Œil réduit", "Cornée", "Cristallin", "Rétine", "Amétropies", "Laser médical", "Cochlée"],
+      "recommendedControls": ["Œil", "Rayons", "Lentilles", "Laser", "Audition"]
+    },
+    {
+      "id": "shs_psy_medicale_premium",
+      "title": "SHS et psychologie médicale",
+      "modelUrl": "/models/euromed/s1/shs/shs_psy_medicale_premium.glb",
+      "sourceCourses": ["Introduction SHS", "Psychologie médicale", "Psychologie développementale", "Fonctionnement de la personnalité"],
+      "scenes": ["Modèle biopsychosocial", "Relation médecin-malade", "Hospitalisation", "Réactions psychologiques", "Déterminants sociaux", "Personnalité iceberg"],
+      "recommendedControls": ["Relation", "Déterminants", "Émotions", "Biopsychosocial", "Hospitalisation"]
+    }
+  ]
+}
