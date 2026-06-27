@@ -12,6 +12,7 @@ import { histoirePsychoSocioS2Chapters } from '@/lib/content/euromed-s2-histoire
 import { techniquesCommunicationS2Chapters } from '@/lib/content/euromed-s2-techniques-communication-s2'
 import { cahierExamensS2Chapters } from '@/lib/content/euromed-s2-cahier-examens-s2'
 import type { Chapter } from '@/lib/content/types'
+import { getWordPressChapters } from '@/lib/wordpress'
 
 export const dynamic = 'force-dynamic'
 
@@ -66,7 +67,9 @@ export async function GET(
   { params }: { params: Promise<{ module: string }> },
 ) {
   const { module } = await params
-  const chapters = keepOnlyOriginalSupports(moduleChapters[module as keyof typeof moduleChapters] ?? [])
+  const staticChapters = moduleChapters[module as keyof typeof moduleChapters] ?? []
+  const wordpressChapters = await getWordPressChapters(module)
+  const chapters = keepOnlyOriginalSupports([...staticChapters, ...wordpressChapters])
 
   return NextResponse.json(
     { chapters },
